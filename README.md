@@ -45,13 +45,13 @@ domain.com/photo/w100,h200,c10x5/path – Crop image by rectangle starting from 
 domain.com/photo/w100,h200,c10x5x200x400/path – Crop image by rectangle starting from 10x5 and 200x400 size. After that resize it to 100x200
 
   
-#### Gravity
+### `g` : Gravity
 
 When crop is applied, changing the gravity will define which part of the image is kept inside the crop area. The basic options are:
 
-* `no` — north (top edge);
-* `so` — south (bottom edge);
-* `ea` — east (right edge);
-* `we` — west (left edge);
+* ~`no` — north (top edge);~
+* ~`so` — south (bottom edge);~
+* ~`ea` — east (right edge);~
+* ~`we` — west (left edge);~
 * `ce` — center (default mode);
 * `sm` — smart. `libvips` detects the most "interesting" section of the image and considers it as the center of the resulting image.  
