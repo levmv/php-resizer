@@ -13,10 +13,9 @@ Example:
 domain.com/photo/w100,h200,c/encodedimagepath.jpg
 
 ## Full list of options: 
+```
   w: width
-  h: height
-  x: x offset
-  y: y offset
+  h: height 
   c: crop
   q: quality
   g: gravity   
@@ -24,7 +23,7 @@ domain.com/photo/w100,h200,c/encodedimagepath.jpg
   f: filter
   r: rotate
   s: scale 
-  
+```
 
 ### `w` : width, `h` : height
 Width and height parameters define the size of the resulting image. By default works like defining a rectangle that will define a max-width and max-height and the image will scale propotionally to fit that area without cropping.
