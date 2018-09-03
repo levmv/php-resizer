@@ -1,0 +1,17 @@
+{
+  "name": "levmorozov/php-resizer",
+  "type": "library",
+  "description": "Microservice to resize images",
+  "keywords": [],
+  "homepage": "https://github.com/levmorozov/php-resizer",
+  "license": "MIT",
+  "require": {
+    "php": ">=7.1",
+    "jcupitt/vips" : "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "levmorozov\\phpresizer\\": "src/"
+    }
+  }
+}
