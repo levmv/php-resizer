@@ -2,6 +2,8 @@
 
 namespace levmorozov\phpresizer;
 
+use Aws\Credentials\Credentials;
+use Aws\S3\S3Client;
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
@@ -27,6 +29,17 @@ class Resizer
     const POSITION_CENTER = 'c';
 
     const FILTER_SHARPEN = 's';
+
+    protected $uri;
+
+    protected $storage = 'local';
+
+    /** @var S3Client */
+    protected $s3;
+    protected $region = 'eu-central-1';
+    protected $bucket = '';
+    protected $key = '';
+    protected $secret = '';
 
     protected $file;
 
@@ -55,11 +68,40 @@ class Resizer
 
     protected $pixel_density_ratio;
 
+    protected $log;
+
     public function __construct($config)
     {
         foreach ($config as $key => $value)
             $this->$key = $value;
 
+        if ($this->storage == 's3') {
+
+            $credentials = new Credentials($this->key, $this->secret);
+
+            $this->s3 = new S3Client([
+                'version' => 'latest',
+                'region' => $this->region,
+                'credentials' => $credentials
+            ]);
+        }
+
+        if (!$this->uri)
+            $this->parse_uri();
+
+        try {
+            $this->parse_options();
+            $this->process();
+        } catch (\Throwable $e) {
+            if ($this->log)
+                $this->error($e);
+            header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+            exit;
+        }
+    }
+
+    protected function parse_uri()
+    {
         $uri = $_SERVER['REQUEST_URI'];
 
         if ($uri !== '' && $uri[0] !== '/') {
@@ -75,93 +117,99 @@ class Resizer
         if (strpos($uri, '/') === 0)
             $uri = substr($uri, 1);
 
-        try {
+        $this->uri = $uri;
+    }
 
-            $parts = explode('/', $uri, 2);
+    protected function parse_options()
+    {
+        $parts = explode('/', $this->uri, 2);
 
-            $this->file = $this->get_file($parts[1]);
+        $this->file = $this->get_file($parts[1]);
 
-            foreach (explode(',', strtolower($parts[0])) as $option) {
+        foreach (explode(',', strtolower($parts[0])) as $option) {
 
-                $name = substr($option, 0, 1);
-                $value = substr($option, 1);
+            $name = substr($option, 0, 1);
+            $value = substr($option, 1);
 
-                if (!$value)
-                    continue;
+            if (!$value)
+                continue;
 
-                switch ($name) {
-                    case 'r':
-                        if ($value[0] == 'f') {
-                            $this->mode = $this::MODE_FILL;
-                            $value = substr($value, 1);
-                        } elseif ($value[0] == 'c') {
-                            $this->mode = $this::MODE_CROP;
-                            $value = substr($value, 1);
+            switch ($name) {
+                case 'r':
+                    if ($value[0] == 'f') {
+                        $this->mode = $this::MODE_FILL;
+                        $value = substr($value, 1);
+                    } elseif ($value[0] == 'c') {
+                        $this->mode = $this::MODE_CROP;
+                        $value = substr($value, 1);
+                    }
+                    $sizes = explode('x', $value);
+                    if (count($sizes) == 2) {
+                        $this->resize = true;
+                        $this->width = (int)$sizes[0];
+                        $this->height = (int)$sizes[1];
+                    } elseif (count($sizes) == 1 AND $sizes[0]) {
+                        $this->resize = true;
+                        $this->width = (int)$sizes[0];
+                    }
+                    break;
+                case 'c':
+                    $numbers = explode('x', $value);
+                    if (count($numbers) == 4) {
+                        $this->crop = true;
+                        $this->crop_x = (int)$numbers[0];
+                        $this->crop_y = (int)$numbers[1];
+                        $this->crop_width = (int)$numbers[2];
+                        $this->crop_height = (int)$numbers[3];
+                    }
+                    break;
+                case 'q':
+                    $this->quality = (int)$value;
+                    break;
+                case 'g':
+                    if ($value[0] == 'f') {
+                        $this->gravity = $this::GRAVITY_FOCAL;
+                        $point = explode('x', substr($value, 1));
+                        if (count($point) == 2) {
+                            $this->gravity_x = (int)$point[0];
+                            $this->gravity_y = (int)$point[1];
                         }
-                        $sizes = explode('x', $value);
-                        if (count($sizes) == 2) {
-                            $this->resize = true;
-                            $this->width = (int)$sizes[0];
-                            $this->height = (int)$sizes[1];
-                        } elseif (count($sizes) == 1 AND $sizes[0]) {
-                            $this->resize = true;
-                            $this->width = (int)$sizes[0];
-                        }
-                        break;
-                    case 'c':
-                        $numbers = explode('x', $value);
-                        if (count($numbers) == 4) {
-                            $this->crop = true;
-                            $this->crop_x = (int)$numbers[0];
-                            $this->crop_y = (int)$numbers[1];
-                            $this->crop_width = (int)$numbers[2];
-                            $this->crop_height = (int)$numbers[3];
-                        }
-                        break;
-                    case 'q':
-                        $this->quality = (int)$value;
-                        break;
-                    case 'g':
-                        if ($value[0] == 'f') {
-                            $this->gravity = $this::GRAVITY_FOCAL;
-                            $point = explode('x', substr($value, 1));
-                            if (count($point) == 2) {
-                                $this->gravity_x = (int)$point[0];
-                                $this->gravity_y = (int)$point[1];
-                            }
-                        } elseif ($value[0] == 's') {
-                            $this->gravity = $this::GRAVITY_SMART;
-                        }
-                        break;
-                    case 'b':
-                        $this->background = sscanf($value, "%02x%02x%02x");
-                        break;
-                    case 'w':
-                        $opts = explode('-', $value);
-                        if (count($opts) == 3 AND $opts[2]) {
-                            $this->watermarks[] = [
-                                'path' => $opts[2],
-                                'position' => $opts[0] ? $opts[0] : $this::POSITION_SOUTH_EAST,
-                                'size' => $opts[1] ? (int)$opts[1] : 100
-                            ];
-                        }
-                        break;
-                    case 'f':
-                        if ($value)
-                            $this->filters[] = $value;
-                        break;
-                    case 'p':
-                        $this->pixel_density_ratio = (float)$value;
-                        break;
-                }
+                    } elseif ($value[0] == 's') {
+                        $this->gravity = $this::GRAVITY_SMART;
+                    }
+                    break;
+                case 'b':
+                    $this->background = sscanf($value, "%02x%02x%02x");
+                    break;
+                case 'w':
+                    $opts = explode('-', $value);
+                    if (count($opts) == 3 AND $opts[2]) {
+                        $this->watermarks[] = [
+                            'path' => $opts[2],
+                            'position' => $opts[0] ? $opts[0] : $this::POSITION_SOUTH_EAST,
+                            'size' => $opts[1] ? (int)$opts[1] : 100
+                        ];
+                    }
+                    break;
+                case 'f':
+                    if ($value)
+                        $this->filters[] = $value;
+                    break;
+                case 'p':
+                    $this->pixel_density_ratio = (float)$value;
+                    break;
             }
-        } catch (\Throwable $e) {
-            header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
-            exit;
         }
     }
 
-    public function process()
+    protected function error($e)
+    {
+        $f = fopen(__DIR__ . '/' . $this->log, 'a');
+        fwrite($f, '[' . date('Y-m-d H:i:s') . '] ' . $this->uri . ' ' . $e . "\n");
+        fclose($f);
+    }
+
+    protected function process()
     {
         $image = Image::jpegload_buffer($this->file);
 
@@ -272,12 +320,23 @@ class Resizer
 
     protected function get_file($path)
     {
-        // TODO: S3 or local
-        return $this->get_local($path);
+        return $this->storage == 's3'
+            ? $this->get_s3($path)
+            : $this->get_local($path);
     }
 
     protected function get_local($path)
     {
         return file_get_contents(__DIR__ . '/' . $path);
+    }
+
+    protected function get_s3($path)
+    {
+        $object = $this->s3->getObject([
+            'Bucket' => $this->bucket,
+            'Key' => strpos($path, '/') === 0 ? substr($path, 1) : $path
+        ]);
+
+        return $object['Body'];
     }
 }
