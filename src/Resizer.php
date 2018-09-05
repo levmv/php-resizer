@@ -91,10 +91,8 @@ class Resizer
 
         try {
             $this->parse_options();
-            $this->process();
         } catch (\Throwable $e) {
-            if ($this->log)
-                $this->error($e);
+            $this->error($e);
             header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
             exit;
         }
@@ -204,12 +202,25 @@ class Resizer
 
     protected function error($e)
     {
+        if (!$this->log)
+            return;
         $f = fopen(__DIR__ . '/' . $this->log, 'a');
-        fwrite($f, '[' . date('Y-m-d H:i:s') . '] ' . $this->uri . ' ' . $e . "\n");
+        fwrite($f, '[' . date('Y-m-d H:i:s') . '] ' . $this->uri . ' ' . $e . "\n\n\n");
         fclose($f);
     }
 
-    protected function process()
+    public function process()
+    {
+        try {
+            $this->resize();
+        } catch (\Throwable $e) {
+            $this->error($e);
+            header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+            exit;
+        }
+    }
+
+    protected function resize()
     {
         $image = Image::jpegload_buffer($this->file);
 
@@ -334,7 +345,7 @@ class Resizer
     {
         $object = $this->s3->getObject([
             'Bucket' => $this->bucket,
-            'Key' => strpos($path, '/') === 0 ? substr($path, 1) : $path
+            'Key' => ltrim($path, '/')
         ]);
 
         return $object['Body'];
