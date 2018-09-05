@@ -41,6 +41,7 @@ class Resizer
     protected $key = '';
     protected $secret = '';
 
+    protected $path;
     protected $file;
 
     protected $resize;
@@ -89,6 +90,8 @@ class Resizer
         if (!$this->uri)
             $this->parse_uri();
 
+        $this->uri = ltrim($this->uri, '/');
+
         try {
             $this->parse_options();
         } catch (\Throwable $e) {
@@ -110,11 +113,6 @@ class Resizer
             $uri = $request_uri;
         }
 
-        $uri = rawurldecode($uri);
-
-        if (strpos($uri, '/') === 0)
-            $uri = substr($uri, 1);
-
         $this->uri = $uri;
     }
 
@@ -122,7 +120,7 @@ class Resizer
     {
         $parts = explode('/', $this->uri, 2);
 
-        $this->file = $this->get_file($parts[1]);
+        $this->path = ltrim(urldecode($parts[1]), '/');
 
         foreach (explode(',', strtolower($parts[0])) as $option) {
 
@@ -183,7 +181,7 @@ class Resizer
                     $opts = explode('-', $value);
                     if (count($opts) == 3 AND $opts[2]) {
                         $this->watermarks[] = [
-                            'path' => $opts[2],
+                            'path' => urldecode($opts[2]),
                             'position' => $opts[0] ? $opts[0] : $this::POSITION_SOUTH_EAST,
                             'size' => $opts[1] ? (int)$opts[1] : 100
                         ];
@@ -222,6 +220,8 @@ class Resizer
 
     protected function resize()
     {
+        $this->file = $this->get_file($this->path);
+
         $image = Image::jpegload_buffer($this->file);
 
         if ($this->crop) {
@@ -345,7 +345,7 @@ class Resizer
     {
         $object = $this->s3->getObject([
             'Bucket' => $this->bucket,
-            'Key' => ltrim($path, '/')
+            'Key' => $path
         ]);
 
         return $object['Body'];

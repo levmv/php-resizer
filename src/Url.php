@@ -84,7 +84,7 @@ class Url
                         $part .= '-';
                         if ($w['size'])
                             $part .= $w['size'];
-                        $parts[] = $part . '-' . $w['path'];
+                        $parts[] = $part . '-' . urlencode($w['path']);
                         $part = '';
                     }
                     break;
@@ -102,6 +102,6 @@ class Url
                 $parts[] = $part;
         }
 
-        return implode(',', $parts) . '/' . $path;
+        return implode(',', $parts) . '/' . urlencode($path);
     }
 }
