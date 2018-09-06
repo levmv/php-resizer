@@ -42,7 +42,6 @@ class Resizer
     protected $secret = '';
 
     protected $path;
-    protected $file;
 
     protected $resize;
     protected $mode = Resizer::MODE_CONTAIN;
@@ -220,9 +219,8 @@ class Resizer
 
     protected function resize()
     {
-        $this->file = $this->get_file($this->path);
-
-        $image = Image::jpegload_buffer($this->file);
+        $file = $this->get_file($this->path);
+        $image = Image::jpegload_buffer($file);
 
         if ($this->crop) {
 

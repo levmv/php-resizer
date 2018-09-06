@@ -51,7 +51,7 @@ class Url
                 case 'watermarks':
                     foreach ($o as $w) {
                         $part = 'w';
-                        if ($w['position']) {
+                        if (isset($w['position']) AND $w['position']) {
                             switch ($w['position']) {
                                 case 'north':
                                     $part = Resizer::POSITION_NORTH;
@@ -82,7 +82,7 @@ class Url
                             }
                         }
                         $part .= '-';
-                        if ($w['size'])
+                        if (isset($w['size']) AND $w['size'])
                             $part .= $w['size'];
                         $parts[] = $part . '-' . urlencode($w['path']);
                         $part = '';
