@@ -17,16 +17,16 @@ class Url
 
                 case 'resize':
                     $part = 'r';
-                    if ($o['fit_mode']) {
+                    if (isset($o['fit_mode']) AND $o['fit_mode']) {
                         if ($o['fit_mode'] == 'fill')
                             $part .= 'f';
                         elseif ($o['fit_mode'] == 'crop')
                             $part .= 'c';
                     }
-                    if ($o['width'])
+                    if (isset($o['width']) AND $o['width'])
                         $part .= $o['width'];
                     $part .= 'x';
-                    if ($o['height'])
+                    if (isset($o['height']) AND $o['height'])
                         $part .= $o['height'];
                     break;
 
@@ -44,7 +44,7 @@ class Url
 
                 case 'quality':
                 case 'background':
-                case 'pixel_density_ratio':
+                case 'pixel_ratio':
                     $part = substr($name, 0, 1) . $o;
                     break;
 

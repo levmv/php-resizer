@@ -66,7 +66,7 @@ class Resizer
 
     protected $filters = [];
 
-    protected $pixel_density_ratio;
+    protected $pixel_ratio;
 
     protected $log;
 
@@ -191,7 +191,7 @@ class Resizer
                         $this->filters[] = $value;
                     break;
                 case 'p':
-                    $this->pixel_density_ratio = (float)$value;
+                    $this->pixel_ratio = (float)$value;
                     break;
             }
         }
@@ -232,9 +232,9 @@ class Resizer
             $image = $image->crop($this->crop_x, $this->crop_y, $this->crop_width, $this->crop_height);
         }
 
-        if ($this->pixel_density_ratio) {
-            $this->width *= $this->pixel_density_ratio;
-            $this->height *= $this->pixel_density_ratio;
+        if ($this->pixel_ratio) {
+            $this->width *= $this->pixel_ratio;
+            $this->height *= $this->pixel_ratio;
         }
 
         if ($this->resize AND $this->width <= $image->width AND $this->height <= $image->height) {
