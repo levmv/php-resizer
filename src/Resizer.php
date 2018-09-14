@@ -7,6 +7,7 @@ use Aws\S3\S3Client;
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
+use Jcupitt\Vips\Size;
 
 class Resizer
 {
@@ -237,9 +238,9 @@ class Resizer
             $this->height *= $this->pixel_ratio;
         }
 
-        if ($this->resize AND $this->width <= $image->width AND $this->height <= $image->height) {
+        if ($this->resize) {
 
-            $options = ['height' => $this->height];
+            $options = ['height' => $this->height, 'size' => Size::DOWN];
 
             // TODO: Focal point gravity
             if ($this->mode == $this::MODE_CROP) {
@@ -250,7 +251,7 @@ class Resizer
                 }
             }
 
-            $image = Image::thumbnail_buffer($image->jpegsave_buffer(), $this->width, $options);
+            $image = $image->thumbnail_image($this->width, $options);
 
             if ($this->mode == $this::MODE_FILL) {
                 $image = $image->embed(
