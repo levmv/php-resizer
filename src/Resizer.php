@@ -69,6 +69,8 @@ class Resizer
 
     protected $pixel_ratio;
 
+    protected $auto_webp;
+
     protected $log;
 
     public function __construct($config)
@@ -193,6 +195,9 @@ class Resizer
                     break;
                 case 'p':
                     $this->pixel_ratio = (float)$value;
+                    break;
+                case 'a':
+                    $this->auto_webp = true;
                     break;
             }
         }
@@ -324,8 +329,13 @@ class Resizer
         if ($this->quality)
             $params['Q'] = $this->quality;
 
-        header('Content-type: image/jpeg');
-        echo $image->jpegsave_buffer($params);
+        if (strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
+            header('Content-type: image/webp');
+            echo $image->webpsave_buffer($params);
+        } else {
+            header('Content-type: image/jpeg');
+            echo $image->jpegsave_buffer($params);
+        }
     }
 
     protected function get_file($path)

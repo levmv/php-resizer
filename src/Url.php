@@ -96,6 +96,10 @@ class Url
                         $part = '';
                     }
                     break;
+
+                case 'auto_webp':
+                    $part = 'aw';
+                    break;
             }
 
             if ($part)
