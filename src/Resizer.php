@@ -133,10 +133,10 @@ class Resizer
             switch ($name) {
                 case 'r':
                     if ($value[0] == 'f') {
-                        $this->mode = $this::MODE_FILL;
+                        $this->mode = Resizer::MODE_FILL;
                         $value = substr($value, 1);
                     } elseif ($value[0] == 'c') {
-                        $this->mode = $this::MODE_CROP;
+                        $this->mode = Resizer::MODE_CROP;
                         $value = substr($value, 1);
                     }
                     $sizes = explode('x', $value);
@@ -164,14 +164,14 @@ class Resizer
                     break;
                 case 'g':
                     if ($value[0] == 'f') {
-                        $this->gravity = $this::GRAVITY_FOCAL;
+                        $this->gravity = Resizer::GRAVITY_FOCAL;
                         $point = explode('x', substr($value, 1));
                         if (count($point) == 2) {
                             $this->gravity_x = (int)$point[0];
                             $this->gravity_y = (int)$point[1];
                         }
                     } elseif ($value[0] == 's') {
-                        $this->gravity = $this::GRAVITY_SMART;
+                        $this->gravity = Resizer::GRAVITY_SMART;
                     }
                     break;
                 case 'b':
@@ -182,7 +182,7 @@ class Resizer
                     if (count($opts) == 3 AND $opts[2]) {
                         $this->watermarks[] = [
                             'path' => urldecode($opts[2]),
-                            'position' => $opts[0] ? $opts[0] : $this::POSITION_SOUTH_EAST,
+                            'position' => $opts[0] ? $opts[0] : Resizer::POSITION_SOUTH_EAST,
                             'size' => $opts[1] ? (int)$opts[1] : 100
                         ];
                     }
@@ -243,17 +243,17 @@ class Resizer
             $options = ['height' => $this->height, 'size' => Size::DOWN];
 
             // TODO: Focal point gravity
-            if ($this->mode == $this::MODE_CROP) {
-                if ($this->gravity == $this::GRAVITY_CENTER) {
+            if ($this->mode == Resizer::MODE_CROP) {
+                if ($this->gravity == Resizer::GRAVITY_CENTER) {
                     $options['crop'] = Interesting::CENTRE;
-                } elseif ($this->gravity == $this::GRAVITY_SMART) {
+                } elseif ($this->gravity == Resizer::GRAVITY_SMART) {
                     $options['crop'] = Interesting::ATTENTION;
                 }
             }
 
             $image = $image->thumbnail_image($this->width, $options);
 
-            if ($this->mode == $this::MODE_FILL) {
+            if ($this->mode == Resizer::MODE_FILL) {
                 $image = $image->embed(
                     ($this->width - $image->width) / 2,
                     ($this->height - $image->height) / 2,
@@ -269,7 +269,7 @@ class Resizer
             foreach ($this->filters as $filter) {
 
                 switch ($filter) {
-                    case $this::FILTER_SHARPEN:
+                    case Resizer::FILTER_SHARPEN:
                         $image = $image->sharpen();
                         break;
                 }
@@ -286,31 +286,31 @@ class Resizer
                     $mark = $mark->resize($watermark['size'] / 100);
 
                 switch ($watermark['position']) {
-                    case $this::POSITION_NORTH:
+                    case Resizer::POSITION_NORTH:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, 0, $image->width, $image->height);
                         break;
-                    case $this::POSITION_NORTH_EAST:
+                    case Resizer::POSITION_NORTH_EAST:
                         $mark = $mark->embed($image->width - $mark->width, 0, $image->width, $image->height);
                         break;
-                    case $this::POSITION_EAST:
+                    case Resizer::POSITION_EAST:
                         $mark = $mark->embed($image->width - $mark->width, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
-                    case $this::POSITION_SOUTH_EAST:
+                    case Resizer::POSITION_SOUTH_EAST:
                         $mark = $mark->embed($image->width - $mark->width, $image->height - $mark->height, $image->width, $image->height);
                         break;
-                    case $this::POSITION_SOUTH:
+                    case Resizer::POSITION_SOUTH:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height - $mark->height, $image->width, $image->height);
                         break;
-                    case $this::POSITION_SOUTH_WEST:
+                    case Resizer::POSITION_SOUTH_WEST:
                         $mark = $mark->embed(0, $image->height - $mark->height, $image->width, $image->height);
                         break;
-                    case $this::POSITION_WEST:
+                    case Resizer::POSITION_WEST:
                         $mark = $mark->embed(0, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
-                    case $this::POSITION_NORTH_WEST:
+                    case Resizer::POSITION_NORTH_WEST:
                         $mark = $mark->embed(0, 0, $image->width, $image->height);
                         break;
-                    case $this::POSITION_CENTER:
+                    case Resizer::POSITION_CENTER:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
                 }
