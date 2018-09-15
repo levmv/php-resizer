@@ -69,7 +69,7 @@ class Resizer
 
     protected $pixel_ratio;
 
-    protected $auto_webp;
+    protected $auto_webp = true;
 
     protected $log;
 
@@ -207,8 +207,13 @@ class Resizer
     {
         if (!$this->log)
             return;
+        $refferer = $_SERVER['HTTP_REFERER'] ?? "";
         $f = fopen(__DIR__ . '/' . $this->log, 'a');
-        fwrite($f, '[' . date('Y-m-d H:i:s') . '] ' . $this->uri . ' ' . $e . "\n\n\n");
+
+        if($e instanceof \Throwable)
+            $e = (string) $e . "\n";
+
+        fwrite($f, '[' . date('Y-m-d H:i:s') .'] [' .$refferer . '] ' . $this->uri . ' ' . $e . "\n");
         fclose($f);
     }
 
@@ -245,6 +250,9 @@ class Resizer
 
         if ($this->resize) {
 
+            $final_width = $this->width;
+            $final_height = $this->height;
+
             $options = ['height' => $this->height, 'size' => Size::DOWN];
 
             // TODO: Focal point gravity
@@ -256,14 +264,26 @@ class Resizer
                 }
             }
 
+            if($image->width < $this->width OR $image->height < $this->height ) {
+
+                $this->error("Bad crop area for resize (fit mode = crop)");
+
+                $this->mode = Resizer::MODE_FILL;
+                if($image->height < $this->height)
+                    $options['height'] = $image->height;
+
+                if($image->width < $this->width)
+                    $this->width = $image->width;
+            }
+
             $image = $image->thumbnail_image($this->width, $options);
 
             if ($this->mode == Resizer::MODE_FILL) {
                 $image = $image->embed(
-                    ($this->width - $image->width) / 2,
-                    ($this->height - $image->height) / 2,
-                    $this->width,
-                    $this->height,
+                    ($final_width - $image->width) / 2,
+                    ($final_height - $image->height) / 2,
+                    $final_width,
+                    $final_height,
                     ['background' => $this->background]
                 );
             }
@@ -329,7 +349,7 @@ class Resizer
         if ($this->quality)
             $params['Q'] = $this->quality;
 
-        if (strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
+        if (isset($_SERVER['HTTP_ACCEPT']) AND strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
             header('Content-type: image/webp');
             echo $image->webpsave_buffer($params);
         } else {
@@ -347,7 +367,7 @@ class Resizer
 
     protected function get_local($path)
     {
-        return file_get_contents(__DIR__ . '/' . $path);
+        return file_get_contents( $path);
     }
 
     protected function get_s3($path)
