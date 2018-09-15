@@ -8,8 +8,23 @@ class Url
     {
         $parts = [];
 
+        $options = array_replace([
+            'resize' => null,
+            'crop' => null,
+            'gravity' => null,
+            'watermarks' => null,
+            'quality' => null,
+            'background' => null,
+            'pixel_ratio' => null,
+            'filters' => null,
+            'auto_webp' => null
+        ], $options);
+
         // TODO: Empty options
         foreach ($options as $name => $o) {
+
+            if(!$o)
+                continue;
 
             $part = '';
 
