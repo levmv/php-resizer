@@ -262,18 +262,19 @@ class Resizer
                 } elseif ($this->gravity == Resizer::GRAVITY_SMART) {
                     $options['crop'] = Interesting::ATTENTION;
                 }
-            }
 
-            if($image->width < $this->width OR $image->height < $this->height ) {
+                if($image->width < $this->width OR $image->height < $this->height ) {
 
-                $this->error("Bad crop area for resize (fit mode = crop)");
+                    $this->error("Bad crop area for resize (fit mode = crop)");
 
-                $this->mode = Resizer::MODE_FILL;
-                if($image->height < $this->height)
-                    $options['height'] = $image->height;
+                    $this->mode = Resizer::MODE_FILL;
 
-                if($image->width < $this->width)
-                    $this->width = $image->width;
+                    if($image->height < $this->height)
+                        $options['height'] = $image->height;
+
+                    if($image->width < $this->width)
+                        $this->width = $image->width;
+                }
             }
 
             $image = $image->thumbnail_image($this->width, $options);
