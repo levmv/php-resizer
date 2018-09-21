@@ -203,17 +203,22 @@ class Resizer
         }
     }
 
-    protected function error($e)
+    protected function error($e) : void
     {
         if (!$this->log)
             return;
+
         $refferer = $_SERVER['HTTP_REFERER'] ?? "";
-        $f = fopen(__DIR__ . '/' . $this->log, 'a');
 
         if ($e instanceof \Throwable)
-            $e = (string)$e . "\n";
+            $e = (string) $e . "\n";
 
+        if (($f = fopen($this->log, 'a')) === false) {
+            throw new ErrorException("Unable to append to log file: {$this->log}");
+        }
+        flock($f, LOCK_EX);
         fwrite($f, '[' . date('Y-m-d H:i:s') . '] [' . $refferer . '] ' . $this->uri . ' ' . $e . "\n");
+        flock($f, LOCK_UN);
         fclose($f);
     }
 
