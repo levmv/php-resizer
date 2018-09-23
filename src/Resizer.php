@@ -73,6 +73,8 @@ class Resizer
 
     protected $log;
 
+    protected $cache_path;
+
     public function __construct($config)
     {
         foreach ($config as $key => $value)
@@ -373,11 +375,46 @@ class Resizer
 
     protected function get_s3($path)
     {
+        if($this->cache_path && $object = $this->get_cached($path)) {
+            return $object;
+        }
+
         $object = $this->s3->getObject([
             'Bucket' => $this->bucket,
             'Key' => $path
         ]);
 
+        if($this->cache_path) {
+            $this->cache($path, $object['Body']);
+        }
+
         return $object['Body'];
+    }
+
+    // Temporary:
+
+    private function get_cached($path)
+    {
+        $filename = $this->cached_file($path);
+        if(file_exists($filename))
+            return file_get_contents($filename);
+        return false;
+    }
+
+    private function cache($path, $content)
+    {
+        $filename = $this->cached_file($path);
+
+        $dir = dirname($filename);
+        if(!is_dir($dir))
+            mkdir($dir,0777, true);
+
+        file_put_contents($filename, $content);
+    }
+
+    private function cached_file($path) {
+        $file = md5($path);
+        $prefix = substr($file,0,2);
+        return rtrim($this->cache_path,'/')."/$prefix/$file";
     }
 }
