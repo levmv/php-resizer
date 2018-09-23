@@ -205,17 +205,22 @@ class Resizer
         }
     }
 
-    protected function error($e)
+    protected function error($e) : void
     {
         if (!$this->log)
             return;
-        $refferer = $_SERVER['HTTP_REFERER'] ?? "";
-        $f = fopen(__DIR__ . '/' . $this->log, 'a');
 
-        if($e instanceof \Throwable)
+        $refferer = $_SERVER['HTTP_REFERER'] ?? "";
+
+        if ($e instanceof \Throwable)
             $e = (string) $e . "\n";
 
-        fwrite($f, '[' . date('Y-m-d H:i:s') .'] [' .$refferer . '] ' . $this->uri . ' ' . $e . "\n");
+        if (($f = fopen($this->log, 'a')) === false) {
+            throw new ErrorException("Unable to append to log file: {$this->log}");
+        }
+        flock($f, LOCK_EX);
+        fwrite($f, '[' . date('Y-m-d H:i:s') . '] [' . $refferer . '] ' . $this->uri . ' ' . $e . "\n");
+        flock($f, LOCK_UN);
         fclose($f);
     }
 
@@ -233,7 +238,7 @@ class Resizer
     protected function resize()
     {
         $file = $this->get_file($this->path);
-        $image = Image::jpegload_buffer($file);
+        $image = Image::newFromBuffer($file);
 
         if ($this->crop) {
 
@@ -265,16 +270,16 @@ class Resizer
                     $options['crop'] = Interesting::ATTENTION;
                 }
 
-                if($image->width < $this->width OR $image->height < $this->height ) {
+                if ($image->width < $this->width OR $image->height < $this->height) {
 
                     $this->error("Bad crop area for resize (fit mode = crop)");
 
                     $this->mode = Resizer::MODE_FILL;
 
-                    if($image->height < $this->height)
+                    if ($image->height < $this->height)
                         $options['height'] = $image->height;
 
-                    if($image->width < $this->width)
+                    if ($image->width < $this->width)
                         $this->width = $image->width;
                 }
             }
@@ -370,7 +375,7 @@ class Resizer
 
     protected function get_local($path)
     {
-        return file_get_contents( $path);
+        return file_get_contents($path);
     }
 
     protected function get_s3($path)
