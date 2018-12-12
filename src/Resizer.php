@@ -401,8 +401,11 @@ class Resizer
     private function get_cached($path)
     {
         $filename = $this->cached_file($path);
-        if(file_exists($filename))
+        if(file_exists($filename)) {
+            touch($filename);
             return file_get_contents($filename);
+        }
+
         return false;
     }
 
