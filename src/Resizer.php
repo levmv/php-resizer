@@ -418,6 +418,7 @@ class Resizer
             mkdir($dir,0777, true);
 
         file_put_contents($filename, $content);
+        chmod($filename, 0666); // todo: make it configurable with 0644 by default
     }
 
     private function cached_file($path) {
