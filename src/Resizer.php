@@ -287,6 +287,10 @@ class Resizer
             $image = $image->thumbnail_image($this->width, $options);
 
             if ($this->mode == Resizer::MODE_FILL) {
+
+                if ($image->hasAlpha())
+                    $image = $image->flatten();
+
                 $image = $image->embed(
                     ($final_width - $image->width) / 2,
                     ($final_height - $image->height) / 2,
