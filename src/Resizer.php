@@ -42,6 +42,7 @@ class Resizer
     protected $key = '';
     protected $secret = '';
 
+    protected $base_path;
     protected $path;
 
     protected $resize;
@@ -379,7 +380,7 @@ class Resizer
 
     protected function get_local($path)
     {
-        return file_get_contents($path);
+        return file_get_contents($this->base_path . $path);
     }
 
     protected function get_s3($path)
