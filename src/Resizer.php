@@ -41,6 +41,7 @@ class Resizer
     protected $bucket = '';
     protected $key = '';
     protected $secret = '';
+    protected $endpoint;
 
     protected $path;
 
@@ -82,11 +83,16 @@ class Resizer
 
             $credentials = new Credentials($this->key, $this->secret);
 
-            $this->s3 = new S3Client([
+            $args = [
                 'version' => 'latest',
                 'region' => $this->region,
                 'credentials' => $credentials
-            ]);
+            ];
+
+            if($this->endpoint)
+                $args['endpoint'] = $this->endpoint;
+
+            $this->s3 = new S3Client($args);
         }
 
         if (!$this->uri)
