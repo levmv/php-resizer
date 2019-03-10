@@ -43,6 +43,7 @@ class Resizer
     protected $secret = '';
     protected $endpoint;
 
+    protected $base_path;
     protected $path;
 
     protected $resize;
@@ -70,9 +71,11 @@ class Resizer
 
     protected $pixel_ratio;
 
-    protected $auto_webp;
+    protected $auto_webp = true;
 
     protected $log;
+
+    protected $cache_path;
 
     public function __construct($config)
     {
@@ -209,12 +212,22 @@ class Resizer
         }
     }
 
-    protected function error($e)
+    protected function error($e) : void
     {
         if (!$this->log)
             return;
-        $f = fopen(__DIR__ . '/' . $this->log, 'a');
-        fwrite($f, '[' . date('Y-m-d H:i:s') . '] ' . $this->uri . ' ' . $e . "\n\n\n");
+
+        $refferer = $_SERVER['HTTP_REFERER'] ?? "";
+
+        if ($e instanceof \Throwable)
+            $e = (string) $e . "\n";
+
+        if (($f = fopen($this->log, 'a')) === false) {
+            throw new ErrorException("Unable to append to log file: {$this->log}");
+        }
+        flock($f, LOCK_EX);
+        fwrite($f, '[' . date('Y-m-d H:i:s') . '] [' . $refferer . '] ' . $this->uri . ' ' . $e . "\n");
+        flock($f, LOCK_UN);
         fclose($f);
     }
 
@@ -232,7 +245,7 @@ class Resizer
     protected function resize()
     {
         $file = $this->get_file($this->path);
-        $image = Image::jpegload_buffer($file);
+        $image = Image::newFromBuffer($file);
 
         if ($this->crop) {
 
@@ -251,6 +264,9 @@ class Resizer
 
         if ($this->resize) {
 
+            $final_width = $this->width;
+            $final_height = $this->height;
+
             $options = ['height' => $this->height, 'size' => Size::DOWN];
 
             // TODO: Focal point gravity
@@ -260,16 +276,33 @@ class Resizer
                 } elseif ($this->gravity == Resizer::GRAVITY_SMART) {
                     $options['crop'] = Interesting::ATTENTION;
                 }
+
+                if ($image->width < $this->width OR $image->height < $this->height) {
+
+                    $this->error("Bad crop area for resize (fit mode = crop)");
+
+                    $this->mode = Resizer::MODE_FILL;
+
+                    if ($image->height < $this->height)
+                        $options['height'] = $image->height;
+
+                    if ($image->width < $this->width)
+                        $this->width = $image->width;
+                }
             }
 
             $image = $image->thumbnail_image($this->width, $options);
 
             if ($this->mode == Resizer::MODE_FILL) {
+
+                if ($image->hasAlpha())
+                    $image = $image->flatten();
+
                 $image = $image->embed(
-                    ($this->width - $image->width) / 2,
-                    ($this->height - $image->height) / 2,
-                    $this->width,
-                    $this->height,
+                    ($final_width - $image->width) / 2,
+                    ($final_height - $image->height) / 2,
+                    $final_width,
+                    $final_height,
                     ['background' => $this->background]
                 );
             }
@@ -335,7 +368,7 @@ class Resizer
         if ($this->quality)
             $params['Q'] = $this->quality;
 
-        if (strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
+        if (isset($_SERVER['HTTP_ACCEPT']) AND strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
             header('Content-type: image/webp');
             echo $image->webpsave_buffer($params);
         } else {
@@ -353,16 +386,55 @@ class Resizer
 
     protected function get_local($path)
     {
-        return file_get_contents(__DIR__ . '/' . $path);
+        return file_get_contents($this->base_path . $path);
     }
 
     protected function get_s3($path)
     {
+        if($this->cache_path && $object = $this->get_cached($path)) {
+            return $object;
+        }
+
         $object = $this->s3->getObject([
             'Bucket' => $this->bucket,
             'Key' => $path
         ]);
 
+        if($this->cache_path) {
+            $this->cache($path, $object['Body']);
+        }
+
         return $object['Body'];
+    }
+
+    // Temporary:
+
+    private function get_cached($path)
+    {
+        $filename = $this->cached_file($path);
+        if(file_exists($filename)) {
+            touch($filename);
+            return file_get_contents($filename);
+        }
+
+        return false;
+    }
+
+    private function cache($path, $content)
+    {
+        $filename = $this->cached_file($path);
+
+        $dir = dirname($filename);
+        if(!is_dir($dir))
+            mkdir($dir,0777, true);
+
+        file_put_contents($filename, $content);
+        chmod($filename, 0666); // todo: make it configurable with 0644 by default
+    }
+
+    private function cached_file($path) {
+        $file = md5($path);
+        $prefix = substr($file,0,2);
+        return rtrim($this->cache_path,'/')."/$prefix/$file";
     }
 }
