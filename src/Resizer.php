@@ -73,6 +73,8 @@ class Resizer
 
     protected $auto_webp = true;
 
+    protected $webp_q_correction = 0;
+
     protected $log;
 
     protected $cache_path;
@@ -171,7 +173,11 @@ class Resizer
                     }
                     break;
                 case 'q':
-                    $this->quality = (int)$value;
+                    if ($value[0] == 'w') {
+                        $this->quality_webp = (int)substr($value, 1);
+                    } else {
+                        $this->quality = (int)$value;
+                    }
                     break;
                 case 'g':
                     if ($value[0] == 'f') {
@@ -365,13 +371,20 @@ class Resizer
 
         $params = [];
 
-        if ($this->quality)
-            $params['Q'] = $this->quality;
-
         if (isset($_SERVER['HTTP_ACCEPT']) AND strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
+
+            if($this->quality_webp) {
+                $params['Q'] = $this->quality_webp;
+            } else {
+                $params['Q'] = $this->quality + $this->webp_q_correction;
+            }
+
             header('Content-type: image/webp');
             echo $image->webpsave_buffer($params);
         } else {
+
+            $params['Q'] = $this->quality ?? 75;
+
             header('Content-type: image/jpeg');
             echo $image->jpegsave_buffer($params);
         }

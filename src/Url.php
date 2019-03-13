@@ -14,6 +14,7 @@ class Url
             'gravity' => null,
             'watermarks' => null,
             'quality' => null,
+            'quality_webp' => null,
             'background' => null,
             'pixel_ratio' => null,
             'filters' => null,
@@ -55,6 +56,10 @@ class Url
 
                 case 'crop':
                     $part = 'c' . $o['x'] . 'x' . $o['y'] . 'x' . $o['width'] . 'x' . $o['height'];
+                    break;
+
+                case 'quality_webp':
+                    $part = 'qw' . $o;
                     break;
 
                 case 'quality':
