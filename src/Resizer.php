@@ -59,6 +59,8 @@ class Resizer
 
     protected $quality;
 
+    protected $quality_webp;
+
     protected $gravity = Resizer::GRAVITY_CENTER;
     protected $gravity_x;
     protected $gravity_y;
