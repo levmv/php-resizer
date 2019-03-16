@@ -4,8 +4,7 @@ namespace levmorozov\phpresizer;
 
 class Url
 {
-    public function make($path, $options)
-    {
+    public function make($path, $options) {
         $parts = [];
 
         $options = array_replace([
@@ -18,13 +17,14 @@ class Url
             'background' => null,
             'pixel_ratio' => null,
             'filters' => null,
-            'auto_webp' => null
+            'auto_webp' => null,
+            'tag' => null
         ], $options);
 
         // TODO: Empty options
         foreach ($options as $name => $o) {
 
-            if(!$o)
+            if (!$o)
                 continue;
 
             $part = '';
@@ -116,6 +116,8 @@ class Url
                         $part = '';
                     }
                     break;
+                case 'tag':
+                    $path = 't' . $o;
 
                 case 'auto_webp':
                     $part = 'aw';
