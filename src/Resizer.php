@@ -46,41 +46,33 @@ class Resizer
     protected $base_path;
     protected $path;
 
-    protected $resize;
-    protected $mode = Resizer::MODE_CONTAIN;
-    protected $width;
-    protected $height;
-
-    protected $crop;
-    protected $crop_x;
-    protected $crop_y;
-    protected $crop_width;
-    protected $crop_height;
-
-    protected $quality;
-
-    protected $gravity = Resizer::GRAVITY_CENTER;
-    protected $gravity_x;
-    protected $gravity_y;
-
-    protected $background = [255, 255, 255];
-
-    protected $watermarks = [];
-
-    protected $filters = [];
-
-    protected $pixel_ratio;
-
-    protected $auto_webp = true;
-
-    protected $webp_q_correction = 0;
+    public $resize;
+    public $mode = Resizer::MODE_CONTAIN;
+    public $width;
+    public $height;
+    public $crop;
+    public $crop_x;
+    public $crop_y;
+    public $crop_width;
+    public $crop_height;
+    public $quality;
+    public $quality_webp;
+    public $gravity = Resizer::GRAVITY_CENTER;
+    public $gravity_x;
+    public $gravity_y;
+    public $background = [255, 255, 255];
+    public $watermarks = [];
+    public $filters = [];
+    public $pixel_ratio;
+    public $auto_webp = true;
+    public $webp_q_correction = 0;
+    public $tag;
 
     protected $log;
 
     protected $cache_path;
 
-    public function __construct($config)
-    {
+    public function __construct($config) {
         foreach ($config as $key => $value)
             $this->$key = $value;
 
@@ -94,7 +86,7 @@ class Resizer
                 'credentials' => $credentials
             ];
 
-            if($this->endpoint)
+            if ($this->endpoint)
                 $args['endpoint'] = $this->endpoint;
 
             $this->s3 = new S3Client($args);
@@ -114,8 +106,7 @@ class Resizer
         }
     }
 
-    protected function parse_uri()
-    {
+    protected function parse_uri() {
         $uri = $_SERVER['REQUEST_URI'];
 
         if ($uri !== '' && $uri[0] !== '/') {
@@ -129,8 +120,7 @@ class Resizer
         $this->uri = $uri;
     }
 
-    protected function parse_options()
-    {
+    protected function parse_options() {
         $parts = explode('/', $this->uri, 2);
 
         $this->path = ltrim(urldecode($parts[1]), '/');
@@ -214,19 +204,21 @@ class Resizer
                 case 'a':
                     $this->auto_webp = true;
                     break;
+                case 't';
+                    $this->tag = (int)$value;
+                    break;
             }
         }
     }
 
-    protected function error($e) : void
-    {
+    protected function error($e): void {
         if (!$this->log)
             return;
 
         $refferer = $_SERVER['HTTP_REFERER'] ?? "";
 
         if ($e instanceof \Throwable)
-            $e = (string) $e . "\n";
+            $e = (string)$e . "\n";
 
         if (($f = fopen($this->log, 'a')) === false) {
             throw new ErrorException("Unable to append to log file: {$this->log}");
@@ -237,10 +229,11 @@ class Resizer
         fclose($f);
     }
 
-    public function process()
-    {
+    public function process() {
         try {
-            $this->resize();
+            if ($this->resize() === false) {
+                header($_SERVER['SERVER_PROTOCOL'] . ' 404 Not found', true, 404);
+            }
         } catch (\Throwable $e) {
             $this->error($e);
             header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
@@ -248,9 +241,11 @@ class Resizer
         }
     }
 
-    protected function resize()
-    {
+    protected function resize() {
         $file = $this->get_file($this->path);
+        if (!$file) {
+            return false;
+        }
         $image = Image::newFromBuffer($file);
 
         if ($this->crop) {
@@ -373,7 +368,7 @@ class Resizer
 
         if (isset($_SERVER['HTTP_ACCEPT']) AND strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
 
-            if($this->quality_webp) {
+            if ($this->quality_webp) {
                 $params['Q'] = $this->quality_webp;
             } else {
                 $params['Q'] = ($this->quality ?? 75) + $this->webp_q_correction;
@@ -388,32 +383,36 @@ class Resizer
             header('Content-type: image/jpeg');
             echo $image->jpegsave_buffer($params);
         }
+        return true;
     }
 
-    protected function get_file($path)
-    {
+    protected function get_file($path) {
         return $this->storage == 's3'
             ? $this->get_s3($path)
             : $this->get_local($path);
     }
 
-    protected function get_local($path)
-    {
+    protected function get_local($path) {
         return file_get_contents($this->base_path . $path);
     }
 
-    protected function get_s3($path)
-    {
-        if($this->cache_path && $object = $this->get_cached($path)) {
+    protected function get_s3($path) {
+        if ($this->cache_path && $object = $this->get_cached($path)) {
             return $object;
         }
 
-        $object = $this->s3->getObject([
-            'Bucket' => $this->bucket,
-            'Key' => $path
-        ]);
+        try {
+            $object = $this->s3->getObject([
+                'Bucket' => $this->bucket,
+                'Key' => $path
+            ]);
+        } catch (Aws\Exception\AwsException $e) {
+            if ($e->getAwsErrorCode() !== 'NoSuchKey')
+                $this->error($e);
+            return false;
+        }
 
-        if($this->cache_path) {
+        if ($this->cache_path && $object) {
             $this->cache($path, $object['Body']);
         }
 
@@ -422,10 +421,9 @@ class Resizer
 
     // Temporary:
 
-    private function get_cached($path)
-    {
+    private function get_cached($path) {
         $filename = $this->cached_file($path);
-        if(file_exists($filename)) {
+        if (file_exists($filename)) {
             touch($filename);
             return file_get_contents($filename);
         }
@@ -433,13 +431,12 @@ class Resizer
         return false;
     }
 
-    private function cache($path, $content)
-    {
+    private function cache($path, $content) {
         $filename = $this->cached_file($path);
 
         $dir = dirname($filename);
-        if(!is_dir($dir))
-            mkdir($dir,0777, true);
+        if (!is_dir($dir))
+            mkdir($dir, 0777, true);
 
         file_put_contents($filename, $content);
         chmod($filename, 0666); // todo: make it configurable with 0644 by default
@@ -447,7 +444,7 @@ class Resizer
 
     private function cached_file($path) {
         $file = md5($path);
-        $prefix = substr($file,0,2);
-        return rtrim($this->cache_path,'/')."/$prefix/$file";
+        $prefix = substr($file, 0, 2);
+        return rtrim($this->cache_path, '/') . "/$prefix/$file";
     }
 }
