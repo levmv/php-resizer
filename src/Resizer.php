@@ -55,7 +55,7 @@ class Resizer
     public $crop_y;
     public $crop_width;
     public $crop_height;
-    public $quality;
+    public $quality = 75;
     public $quality_webp;
     public $gravity = Resizer::GRAVITY_CENTER;
     public $gravity_x;
@@ -368,17 +368,15 @@ class Resizer
 
         if (isset($_SERVER['HTTP_ACCEPT']) AND strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
 
-            if ($this->quality_webp) {
-                $params['Q'] = $this->quality_webp;
-            } else {
-                $params['Q'] = ($this->quality ?? 75) + $this->webp_q_correction;
-            }
+            $params['Q'] = $this->quality_webp
+                ? $this->quality_webp
+                : $this->quality + $this->webp_q_correction;
 
             header('Content-type: image/webp');
             echo $image->webpsave_buffer($params);
         } else {
 
-            $params['Q'] = $this->quality ?? 75;
+            $params['Q'] = $this->quality;
 
             header('Content-type: image/jpeg');
             echo $image->jpegsave_buffer($params);
