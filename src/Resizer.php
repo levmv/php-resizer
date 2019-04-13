@@ -376,7 +376,7 @@ class Resizer
             if($this->quality_webp) {
                 $params['Q'] = $this->quality_webp;
             } else {
-                $params['Q'] = $this->quality + $this->webp_q_correction;
+                $params['Q'] = ($this->quality ?? 75) + $this->webp_q_correction;
             }
 
             header('Content-type: image/webp');
