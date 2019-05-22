@@ -422,7 +422,7 @@ class Resizer
     private function get_cached($path) {
         $filename = $this->cached_file($path);
         if (file_exists($filename)) {
-            touch($filename);
+            exec("touch {$filename}");
             return file_get_contents($filename);
         }
 
@@ -433,8 +433,9 @@ class Resizer
         $filename = $this->cached_file($path);
 
         $dir = dirname($filename);
-        if (!is_dir($dir))
+        if (!is_dir($dir)) {
             mkdir($dir, 0777, true);
+        }
 
         file_put_contents($filename, $content);
         chmod($filename, 0666); // todo: make it configurable with 0644 by default
