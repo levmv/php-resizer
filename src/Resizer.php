@@ -76,22 +76,6 @@ class Resizer
         foreach ($config as $key => $value)
             $this->$key = $value;
 
-        if ($this->storage == 's3') {
-
-            $credentials = new Credentials($this->key, $this->secret);
-
-            $args = [
-                'version' => 'latest',
-                'region' => $this->region,
-                'credentials' => $credentials
-            ];
-
-            if ($this->endpoint)
-                $args['endpoint'] = $this->endpoint;
-
-            $this->s3 = new S3Client($args);
-        }
-
         if (!$this->uri)
             $this->parse_uri();
 
@@ -246,6 +230,8 @@ class Resizer
         if (!$file) {
             return false;
         }
+
+        vips_cache_set_max(0);
         $image = Image::newFromBuffer($file);
 
         if ($this->crop) {
@@ -397,6 +383,21 @@ class Resizer
     protected function get_s3($path) {
         if ($this->cache_path && $object = $this->get_cached($path)) {
             return $object;
+        }
+
+        if(!$this->s3) {
+            $credentials = new Credentials($this->key, $this->secret);
+
+            $args = [
+                'version' => 'latest',
+                'region' => $this->region,
+                'credentials' => $credentials
+            ];
+
+            if ($this->endpoint)
+                $args['endpoint'] = $this->endpoint;
+
+            $this->s3 = new S3Client($args);
         }
 
         try {
