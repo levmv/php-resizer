@@ -2,12 +2,11 @@
 
 namespace levmorozov\phpresizer;
 
-use Aws\Credentials\Credentials;
-use Aws\S3\S3Client;
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
 use Jcupitt\Vips\Size;
+use levmorozov\s3\S3;
 
 class Resizer
 {
@@ -35,7 +34,7 @@ class Resizer
 
     protected $storage = 'local';
 
-    /** @var S3Client */
+    /** @var S3 */
     protected $s3;
     protected $region = 'eu-central-1';
     protected $bucket = '';
@@ -386,36 +385,27 @@ class Resizer
         }
 
         if(!$this->s3) {
-            $credentials = new Credentials($this->key, $this->secret);
-
-            $args = [
-                'version' => 'latest',
-                'region' => $this->region,
-                'credentials' => $credentials
-            ];
-
-            if ($this->endpoint)
-                $args['endpoint'] = $this->endpoint;
-
-            $this->s3 = new S3Client($args);
+            $this->s3 = new S3($this->key, $this->secret, $this->endpoint, $this->region);
         }
 
-        try {
-            $object = $this->s3->getObject([
-                'Bucket' => $this->bucket,
-                'Key' => $path
-            ]);
-        } catch (Aws\Exception\AwsException $e) {
-            if ($e->getAwsErrorCode() !== 'NoSuchKey')
-                $this->error($e);
-            return false;
+
+        $result = $this->s3->getObject([
+            'Bucket' => $this->bucket,
+            'Key' => $path
+        ]);
+
+        if($result->error) {
+            if($result->error['code'] === 'NoSuchKey')
+                return false;
+
+            throw new \Exception($result->error['code'].': '.$result->error['message']);
         }
 
-        if ($this->cache_path && $object) {
-            $this->cache($path, $object['Body']);
+        if ($this->cache_path) {
+            $this->cache($path, $result['body']);
         }
 
-        return $object['Body'];
+        return $result['body'];
     }
 
     // Temporary:
