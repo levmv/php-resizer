@@ -394,11 +394,11 @@ class Resizer
             'Key' => $path
         ]);
 
-        if($result->error) {
-            if($result->error['code'] === 'NoSuchKey')
+        if($result['error']) {
+            if($result['error']['code'] === 'NoSuchKey')
                 return false;
 
-            throw new \Exception($result->error['code'].': '.$result->error['message']);
+            throw new \Exception($result['error']['code'].': '.$result['error']['message']);
         }
 
         if ($this->cache_path) {
