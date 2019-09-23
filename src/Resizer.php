@@ -204,7 +204,7 @@ class Resizer
             $e = (string)$e . "\n";
 
         if (($f = fopen($this->log, 'a')) === false) {
-            throw new ErrorException("Unable to append to log file: {$this->log}");
+            throw new \ErrorException("Unable to append to log file: {$this->log}");
         }
         flock($f, LOCK_EX);
         fwrite($f, '[' . date('Y-m-d H:i:s') . '] [' . $refferer . '] ' . $this->uri . ' ' . $e . "\n");
