@@ -72,13 +72,11 @@ class Resizer
     protected $cache_path;
 
     public function __construct($config) {
+
+        $this->uri = ltrim($_SERVER['REQUEST_URI'], '/');
+
         foreach ($config as $key => $value)
             $this->$key = $value;
-
-        if (!$this->uri)
-            $this->parse_uri();
-
-        $this->uri = ltrim($this->uri, '/');
 
         try {
             $this->parse_options();
@@ -87,20 +85,6 @@ class Resizer
             header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
             exit;
         }
-    }
-
-    protected function parse_uri() {
-        $uri = $_SERVER['REQUEST_URI'];
-
-        if ($uri !== '' && $uri[0] !== '/') {
-            $uri = preg_replace('/^(http|https):\/\/[^\/]+/i', '', $uri);
-        }
-
-        if ($request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) {
-            $uri = $request_uri;
-        }
-
-        $this->uri = $uri;
     }
 
     protected function parse_options() {
