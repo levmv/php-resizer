@@ -1,6 +1,5 @@
 # php-resizer
-Microservice to resize images
-
+Microservice to resize images on the fly
 
 
 ## Generating the URL

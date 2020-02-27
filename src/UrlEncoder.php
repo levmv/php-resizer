@@ -2,26 +2,24 @@
 
 namespace levmorozov\phpresizer;
 
-class Url
+class UrlEncoder
 {
-    public function make($path, $options) {
+    public static function encode($path, array $options = [])
+    {
         $parts = [];
 
-        $options = array_replace([
+        $options = \array_replace([
             'resize' => null,
             'crop' => null,
             'gravity' => null,
             'watermarks' => null,
             'quality' => null,
-            'quality_webp' => null,
             'background' => null,
             'pixel_ratio' => null,
             'filters' => null,
-            'auto_webp' => null,
             'tag' => null
         ], $options);
 
-        // TODO: Empty options
         foreach ($options as $name => $o) {
 
             if (!$o)
@@ -30,20 +28,35 @@ class Url
             $part = '';
 
             switch ($name) {
-
                 case 'resize':
                     $part = 'r';
-                    if (isset($o['fit_mode']) AND $o['fit_mode']) {
-                        if ($o['fit_mode'] == 'fill')
-                            $part .= 'f';
-                        elseif ($o['fit_mode'] == 'crop')
-                            $part .= 'c';
+                    if (isset($o['fit_mode'])) {
+                        if ($o['fit_mode'] === 'fill')
+                            $part = 'rf';
+                        elseif ($o['fit_mode'] === 'crop')
+                            $part = 'rc';
                     }
                     if (isset($o['width']) AND $o['width'])
                         $part .= $o['width'];
                     $part .= 'x';
                     if (isset($o['height']) AND $o['height'])
                         $part .= $o['height'];
+                    break;
+
+                case 'tag':
+                    $part = 't' . (int)$o;
+                    break;
+
+                case 'quality':
+                    $part = "q$o";
+                    break;
+
+                case 'pixel_ratio':
+                    $part = "p$o";
+                    break;
+
+                case 'crop':
+                    $part = "c{$o['x']}x{$o['y']}x{$o['width']}x{$o['height']}";
                     break;
 
                 case 'gravity':
@@ -54,18 +67,8 @@ class Url
                         $part .= 's';
                     break;
 
-                case 'crop':
-                    $part = 'c' . $o['x'] . 'x' . $o['y'] . 'x' . $o['width'] . 'x' . $o['height'];
-                    break;
-
-                case 'quality_webp':
-                    $part = 'qw' . $o;
-                    break;
-
-                case 'quality':
                 case 'background':
-                case 'pixel_ratio':
-                    $part = substr($name, 0, 1) . $o;
+                    $part = "b$o";
                     break;
 
                 case 'watermarks':
@@ -104,7 +107,7 @@ class Url
                         $part .= '-';
                         if (isset($w['size']) AND $w['size'])
                             $part .= $w['size'];
-                        $parts[] = $part . '-' . urlencode($w['path']);
+                        $parts[] = $part . '-' . \urlencode($w['path']);
                         $part = '';
                     }
                     break;
@@ -112,15 +115,9 @@ class Url
                 case 'filters':
                     foreach ($o as $f) {
                         // TODO: Switch case for filters
-                        $parts[] = 'f' . substr($f, 0, 1);
+                        $parts[] = 'f' . \substr($f, 0, 1);
                         $part = '';
                     }
-                    break;
-                case 'tag':
-                    $path = 't' . $o;
-
-                case 'auto_webp':
-                    $part = 'aw';
                     break;
             }
 
@@ -128,6 +125,9 @@ class Url
                 $parts[] = $part;
         }
 
-        return implode(',', $parts) . '/' . urlencode($path);
+        if (empty($parts))
+            return 'n/' . \urlencode($path);
+
+        return \implode(',', $parts) . '/' . \urlencode($path);
     }
 }

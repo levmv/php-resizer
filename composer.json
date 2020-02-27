@@ -6,8 +6,8 @@
   "homepage": "https://github.com/levmorozov/php-resizer",
   "license": "MIT",
   "require": {
-    "php": ">=7.1",
-    "jcupitt/vips" : "~1.0.4",
+    "php": ">=7.4",
+    "jcupitt/vips" : "~1.0.5",
     "levmorozov/amazon-s3-php": "dev-master"
   },
   "autoload": {
