@@ -2,6 +2,7 @@
 
 namespace levmorozov\phpresizer;
 
+use Jcupitt\Vips\Access;
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
@@ -18,37 +19,39 @@ class Resizer
     const MODE_FILL = 2;
     const MODE_CROP = 3;
 
-    const GRAVITY_CENTER = 1;
-    const GRAVITY_SMART = 2;
-    const GRAVITY_FOCAL = 3;
+    public const GRAVITY_CENTER = 1;
+    public const GRAVITY_SMART = 2;
+    public const GRAVITY_FOCAL = 3;
 
-    const POSITION_NORTH = 1;
-    const POSITION_NORTH_EAST = 2;
-    const POSITION_EAST = 3;
-    const POSITION_SOUTH_EAST = 4;
-    const POSITION_SOUTH = 5;
-    const POSITION_SOUTH_WEST = 6;
-    const POSITION_WEST = 7;
-    const POSITION_NORTH_WEST = 8;
-    const POSITION_CENTER = 9;
+    public const POSITION_NORTH = 'n';
+    public const POSITION_NORTH_EAST = 'ne';
+    public const POSITION_EAST = 'e';
+    public const POSITION_SOUTH_EAST = 'se';
+    public const POSITION_SOUTH = 's';
+    public const POSITION_SOUTH_WEST = 'sw';
+    public const POSITION_WEST = 'w';
+    public const POSITION_NORTH_WEST = 'nw';
+    public const POSITION_CENTER = 'c';
 
     const FILTER_SHARPEN = 's';
 
-    protected $storage = 'local';
+    protected bool $remote_storage = false;
 
     /** @var S3 */
-    protected $s3;
-    protected $region = 'eu-central-1';
-    protected $bucket = '';
-    protected $key = '';
-    protected $secret = '';
-    protected $endpoint;
+    protected S3 $s3;
+    protected string $region = 'eu-central-1';
+    protected string $bucket = '';
+    protected string $key = '';
+    protected string $secret = '';
+    protected string $endpoint = '';
 
-    protected $base_path;
-    protected $path;
+    protected string $base_path = '';
+    protected string $path = '';
 
-    public $resize = false;
-    public $mode = Resizer::MODE_CONTAIN;
+    public bool $presets_only = false;
+
+    public bool $resize = false;
+    public int $mode = Resizer::MODE_CONTAIN;
     public int $width;
     public int $height;
     public bool $crop = false;
@@ -57,7 +60,7 @@ class Resizer
     public int $crop_width;
     public int $crop_height;
     public int $quality = 80;
-    public $gravity = Resizer::GRAVITY_CENTER;
+    public int $gravity = Resizer::GRAVITY_CENTER;
     public int $gravity_x;
     public int $gravity_y;
     public array $background = [255, 255, 255];
@@ -65,48 +68,17 @@ class Resizer
     public array $filters = [];
     public ?int $pixel_ratio = null;
     public bool $auto_webp = true;
-    public int $tag;
 
-    public array $tags = [];
+    public array $presets = [];
+    public array $request_presets = [];
 
     protected $log;
 
-    protected $decoder;
+    protected string $cache_path = '';
 
-    protected $cache_path;
-
-    public function __construct($config, UrlDecoder $decoder = null)
+    public function __construct($config)
     {
-
         $this->config($config);
-
-        if ($decoder === null) {
-            $this->decoder = new UrlDecoder();
-        } else {
-            $this->decoder = $decoder;
-        }
-
-        try {
-            $opts = $this->decoder->decode();
-
-            if (!empty($this->tags) AND isset($opts['tag'])) {
-
-                if (!isset($this->tags[$opts['tag']])) {
-                    throw new \Exception("Unknown tag: " . $opts['tag']);
-                }
-
-                $this->config($this->tags[$opts['tag']]);
-            }
-
-            foreach ($opts as $key => $value)
-                $this->$key = $value;
-
-
-        } catch (\Throwable $e) {
-            $this->error($e);
-            header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
-            exit;
-        }
     }
 
     public function config(array $options)
@@ -115,7 +87,158 @@ class Resizer
             $this->$key = $value;
     }
 
+    public function decode(string $uri = null): void
+    {
+        if ($uri === null) {
+            $uri = \ltrim($_SERVER['REQUEST_URI'], '/');
+        }
 
+        try {
+            $this->decode_params($uri);
+
+            if (!empty($this->request_presets)) {
+
+                foreach($this->request_presets as $preset_name) {
+                    if (!isset($this->presets[$preset_name])) {
+                        throw new \Exception("Unknown preset: $preset_name");
+                    }
+                }
+
+                $this->config($this->presets[$preset_name]);
+            }
+
+
+        } catch (\Throwable $e) {
+            $this->error($e);
+            http_response_code(500);
+            exit;
+        }
+    }
+
+    /**
+     * Returns array [params, path]
+     *
+     * @param string $uri
+     * @return array
+     */
+    public function split_uri(string $uri) : array
+    {
+        $parts =  \explode('/', $uri, 2);
+        $parts[1] = \ltrim(\urldecode($parts[1]), '/');
+
+        return $parts;
+    }
+
+    protected function decode_params(string $uri) : void
+    {
+        $parts = $this->split_uri($uri);
+
+        $this->path = $parts[1];
+
+        if($this->presets_only) {
+            $presets = \explode(',', $parts[0]);
+            if(empty($presets))
+                throw new \Exception('No one preset found');
+            foreach ($presets as $option) {
+                $this->request_presets[] = $option;
+            }
+
+            return;
+        }
+
+        foreach (\explode(',', $parts[0]) as $option) {
+
+            $name = \substr($option, 0, 1);
+            $value = \substr($option, 1);
+
+            if (!$value) {
+                throw new \Exception('Wrong settings. Empty value');
+            }
+
+            switch ($name) {
+                case 'r':
+                    if ($value[0] === 'f') {
+                        $this->mode = Resizer::MODE_FILL;
+                        $value = \substr($value, 1);
+                    } elseif ($value[0] === 'c') {
+                        $this->mode = Resizer::MODE_CROP;
+                        $value = \substr($value, 1);
+                    }
+                    $sizes = explode('x', $value);
+                    if (\count($sizes) === 2) {
+                        $this->resize = true;
+                        $this->width = (int)$sizes[0];
+                        $this->height = (int)$sizes[1];
+                    } elseif (\count($sizes) === 1 AND $sizes[0]) {
+                        $this->resize = true;
+                        $this->width = (int)$sizes[0];
+                    }
+                    break;
+                case 'c':
+                    $numbers = \explode('x', $value);
+                    if (\count($numbers) === 4) {
+                        $this->crop = true;
+                        $this->crop_x = (int)$numbers[0];
+                        $this->crop_y = (int)$numbers[1];
+                        $this->crop_width = (int)$numbers[2];
+                        $this->crop_height = (int)$numbers[3];
+                    }
+                    break;
+                case 'q':
+                    $this->quality = (int)$value;
+                    break;
+                case 'g':
+                    if ($value[0] === 'f') {
+                        $this->gravity = Resizer::GRAVITY_FOCAL;
+                        $point = explode('x', substr($value, 1));
+                        if (count($point) === 2) {
+                            $this->gravity_x = (int)$point[0];
+                            $this->gravity_y = (int)$point[1];
+                        }
+                    } elseif ($value[0] === 's') {
+                        $this->gravity = Resizer::GRAVITY_SMART;
+                    }
+                    break;
+                case 'b':
+                    $this->background = \sscanf($value, "%02x%02x%02x");
+                    break;
+                case 'w':
+                    $opts = \explode('-', $value);
+                    if (\count($opts) === 3 AND $opts[2]) {
+                        $this->watermarks[] = [
+                            'path' => \urldecode($opts[2]),
+                            'position' => $opts[0] ? $opts[0] : Resizer::POSITION_SOUTH_EAST,
+                            'size' => $opts[1] ? (int)$opts[1] : 100
+                        ];
+                    }
+                    break;
+                case 'f':
+                    $this->filters[] = $value;
+                    break;
+                case 'p':
+                    switch ($value) {
+                        case '2':
+                            $this->pixel_ratio = self::DPR_TWO;
+                            break;
+                        case '1.5':
+                            $this->pixel_ratio = self::DPR_1_5;
+                            break;
+                        case '3':
+                            $this->pixel_ratio = self::DPR_THREE;
+                            break;
+                    }
+                    break;
+                case 's':
+                case 't':
+                    $this->request_presets[] = $value;
+                    break;
+                case 'n':
+                    break;
+                default:
+                    throw new \Exception("Unsupported param $name");
+            }
+        }
+    }
     protected function error($e): void
     {
         if (!$this->log)
@@ -139,11 +262,11 @@ class Resizer
     {
         try {
             if ($this->resize() === false) {
-                \header($_SERVER['SERVER_PROTOCOL'] . ' 404 Not found', true, 404);
+                http_response_code(404);
             }
         } catch (\Throwable $e) {
             $this->error($e);
-            \header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+            http_response_code(500);
             exit;
         }
     }
@@ -157,7 +280,10 @@ class Resizer
         }
 
         \vips_cache_set_max(0);
-        $image = Image::newFromBuffer($file);
+
+        $image = Image::newFromBuffer($file, '', [
+            'access' => 'sequential',
+        ]);
 
         if ($this->crop) {
 
@@ -302,7 +428,7 @@ class Resizer
 
     protected function get_file($path)
     {
-        return $this->storage == 's3'
+        return $this->remote_storage
             ? $this->get_s3($path)
             : $this->get_local($path);
     }
