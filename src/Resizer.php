@@ -106,8 +106,6 @@ class Resizer
 
                 $this->config($this->presets[$preset_name]);
             }
-
-
         } catch (\Throwable $e) {
             $this->error($e);
             http_response_code(500);
@@ -228,8 +226,7 @@ class Resizer
                             break;
                     }
                     break;
-                case 's':
-                case 't':
+                case '_':
                     $this->request_presets[] = $value;
                     break;
                 case 'n':
