@@ -38,7 +38,7 @@ class Resizer
     protected bool $remote_storage = false;
 
     /** @var S3 */
-    protected S3 $s3;
+    protected ?S3 $s3 = null;
     protected string $region = 'eu-central-1';
     protected string $bucket = '';
     protected string $key = '';
