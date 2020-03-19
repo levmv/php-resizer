@@ -8,7 +8,7 @@
   "require": {
     "php": ">=7.4",
     "jcupitt/vips" : "~1.0.5",
-    "levmorozov/amazon-s3-php": "dev-master"
+    "levmorozov/amazon-s3-php": "~0.0.1"
   },
   "autoload": {
     "psr-4": {

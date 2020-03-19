@@ -1,8 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace levmorozov\phpresizer;
 
-use Jcupitt\Vips\Access;
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
