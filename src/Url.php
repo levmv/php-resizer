@@ -106,6 +106,11 @@ class Url {
                         $part = '';
                     }
                     break;
+                case 'presets':
+                    foreach($o as $preset) {
+                        $parts[] = "_$preset";
+                        $part = '';
+                    }
             }
 
             if ($part)
