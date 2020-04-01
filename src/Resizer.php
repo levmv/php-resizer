@@ -101,9 +101,8 @@ class Resizer
                     if (!isset($this->presets[$preset_name])) {
                         throw new \Exception("Unknown preset: $preset_name");
                     }
+                    $this->config($this->presets[$preset_name]);
                 }
-
-                $this->config($this->presets[$preset_name]);
             }
         } catch (\Throwable $e) {
             $this->error($e);
