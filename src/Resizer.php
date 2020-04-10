@@ -323,8 +323,9 @@ class Resizer
                         $this->width = $image->width;
                 }
             }
-
-            $image = $image->thumbnail_buffer($file, $this->width, $options);
+            $image = $this->crop
+                ? $image->thumbnail_image($this->width, $options)
+                : $image->thumbnail_buffer($file, $this->width, $options);
 
             if ($this->mode == Resizer::MODE_FILL) {
 
