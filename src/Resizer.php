@@ -52,7 +52,7 @@ class Resizer
     public bool $resize = false;
     public int $mode = Resizer::MODE_CONTAIN;
     public int $width;
-    public int $height;
+    public int $height = 0;
     public bool $crop = false;
     public int $crop_x;
     public int $crop_y;
