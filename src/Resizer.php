@@ -68,6 +68,8 @@ class Resizer
     public ?int $pixel_ratio = null;
     public bool $auto_webp = true;
 
+    public bool $upscale = false;
+
     public array $presets = [];
     public array $request_presets = [];
 
@@ -291,8 +293,9 @@ class Resizer
         }
 
         if ($this->pixel_ratio) {
-            $this->width *= $this->pixel_ratio;
-            $this->height *= $this->pixel_ratio;
+            $ratio = $this->pixel_ratio === self::DPR_1_5 ? 1.5 : $this->pixel_ratio;
+            $this->width *= $ratio;
+            $this->height *= $ratio;
         }
 
         if ($this->resize) {
@@ -312,15 +315,18 @@ class Resizer
 
                 if ($image->width < $this->width OR $image->height < $this->height) {
 
-                    $this->error("Bad crop area for resize (fit mode = crop)");
+                    if ($this->pixel_ratio || $this->upscale) {
+                        $options['size'] = Size::BOTH;
 
-                    $this->mode = Resizer::MODE_FILL;
+                    } else {
+                        $this->mode = Resizer::MODE_FILL;
 
-                    if ($image->height < $this->height)
-                        $options['height'] = $image->height;
+                        if ($image->height < $this->height)
+                            $options['height'] = $image->height;
 
-                    if ($image->width < $this->width)
-                        $this->width = $image->width;
+                        if ($image->width < $this->width)
+                            $this->width = $image->width;
+                    }
                 }
             }
             $image = $this->crop
