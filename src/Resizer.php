@@ -170,6 +170,8 @@ class Resizer
                     } elseif (\count($sizes) === 1 AND $sizes[0]) {
                         $this->resize = true;
                         $this->width = (int)$sizes[0];
+                    } else {
+                        throw new \Exception("Wrong resize values count");
                     }
                     break;
                 case 'c':
@@ -180,10 +182,14 @@ class Resizer
                         $this->crop_y = (int)$numbers[1];
                         $this->crop_width = (int)$numbers[2];
                         $this->crop_height = (int)$numbers[3];
+                    } else {
+                        throw new \Exception("Wrong crop values count");
                     }
                     break;
                 case 'q':
                     $this->quality = (int)$value;
+                    if($this->quality < 5 || $this->quality > 99)
+                        throw new \Exception('Wrong quality value');
                     break;
                 case 'g':
                     if ($value[0] === 'f') {
@@ -198,6 +204,9 @@ class Resizer
                     }
                     break;
                 case 'b':
+                    if(\strlen($value) !== 6)
+                        throw new \Exception('Wrong background format');
+
                     $this->background = \sscanf($value, "%02x%02x%02x");
                     break;
                 case 'w':
@@ -224,6 +233,8 @@ class Resizer
                         case '3':
                             $this->pixel_ratio = self::DPR_THREE;
                             break;
+                        default:
+                            throw new \Exception('Wrong pixel_ratio value');
                     }
                     break;
                 case '_':
