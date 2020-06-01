@@ -83,10 +83,11 @@ class Resizer
         $this->config($config);
     }
 
-    public function config(array $options)
+    public function config(array $options): void
     {
-        foreach ($options as $key => $value)
+        foreach ($options as $key => $value) {
             $this->$key = $value;
+        }
     }
 
     public function decode(string $uri = null): void
@@ -102,14 +103,14 @@ class Resizer
 
                 foreach($this->request_presets as $preset_name) {
                     if (!isset($this->presets[$preset_name])) {
-                        throw new \Exception("Unknown preset: $preset_name");
+                        throw new \LogicException("Unknown preset: $preset_name");
                     }
                     $this->config($this->presets[$preset_name]);
                 }
             }
         } catch (\Throwable $e) {
-            $this->error($e);
             http_response_code(500);
+            $this->error($e);
             exit;
         }
     }
@@ -151,16 +152,16 @@ class Resizer
             $value = \substr($option, 1);
 
             if (!$value) {
-                throw new \Exception('Wrong settings. Empty value');
+                throw new \RuntimeException('Wrong settings. Empty value');
             }
 
             switch ($name) {
                 case 'r':
                     if ($value[0] === 'f') {
-                        $this->mode = Resizer::MODE_FILL;
+                        $this->mode = self::MODE_FILL;
                         $value = \substr($value, 1);
                     } elseif ($value[0] === 'c') {
-                        $this->mode = Resizer::MODE_CROP;
+                        $this->mode = self::MODE_CROP;
                         $value = \substr($value, 1);
                     }
                     $sizes = explode('x', $value);
@@ -172,7 +173,7 @@ class Resizer
                         $this->resize = true;
                         $this->width = (int)$sizes[0];
                     } else {
-                        throw new \Exception("Wrong resize values count");
+                        throw new \RuntimeException("Wrong resize values count");
                     }
                     break;
                 case 'c':
@@ -184,13 +185,13 @@ class Resizer
                         $this->crop_width = (int)$numbers[2];
                         $this->crop_height = (int)$numbers[3];
                     } else {
-                        throw new \Exception("Wrong crop values count");
+                        throw new \RuntimeException("Wrong crop values count");
                     }
                     break;
                 case 'q':
                     $this->quality = (int)$value;
                     if($this->quality < 5 || $this->quality > 99)
-                        throw new \Exception('Wrong quality value');
+                        throw new \RuntimeException('Wrong quality value');
                     break;
                 case 'g':
                     if ($value[0] === 'f') {
@@ -206,7 +207,7 @@ class Resizer
                     break;
                 case 'b':
                     if(\strlen($value) !== 6)
-                        throw new \Exception('Wrong background format');
+                        throw new \RuntimeException('Wrong background format');
 
                     $this->background = \sscanf($value, "%02x%02x%02x");
                     break;
@@ -215,7 +216,7 @@ class Resizer
                     if (\count($opts) === 3 AND $opts[2]) {
                         $this->watermarks[] = [
                             'path' => \urldecode($opts[2]),
-                            'position' => $opts[0] ? $opts[0] : Resizer::POSITION_SOUTH_EAST,
+                            'position' => $opts[0] ? $opts[0] : self::POSITION_SOUTH_EAST,
                             'size' => $opts[1] ? (int)$opts[1] : 100
                         ];
                     }
@@ -235,7 +236,7 @@ class Resizer
                             $this->pixel_ratio = self::DPR_THREE;
                             break;
                         default:
-                            throw new \Exception('Wrong pixel_ratio value');
+                            throw new \RuntimeException('Wrong pixel_ratio value');
                     }
                     break;
                 case '_':
@@ -244,10 +245,15 @@ class Resizer
                 case 'n':
                     break;
                 default:
-                    throw new \Exception("Unsupported param $name");
+                    throw new \RuntimeException("Unsupported param $name");
             }
         }
     }
+
+    /**
+     * @param $e
+     * @throws \ErrorException
+     */
     protected function error($e): void
     {
         if (!$this->log)
@@ -267,7 +273,7 @@ class Resizer
         fclose($f);
     }
 
-    public function process()
+    public function process(): void
     {
         if(empty($this->path)) {
             $this->decode();
@@ -287,7 +293,7 @@ class Resizer
      * @return bool
      * @throws \Jcupitt\Vips\Exception
      */
-    protected function resize()
+    protected function resize() : bool
     {
         $file = $this->get_file($this->path);
         if (!$file) {
@@ -324,10 +330,10 @@ class Resizer
             $options = ['height' => $this->height, 'size' => Size::DOWN];
 
             // TODO: Focal point gravity
-            if ($this->mode == Resizer::MODE_CROP) {
-                if ($this->gravity == Resizer::GRAVITY_CENTER) {
+            if ($this->mode === self::MODE_CROP) {
+                if ($this->gravity === self::GRAVITY_CENTER) {
                     $options['crop'] = Interesting::CENTRE;
-                } elseif ($this->gravity == Resizer::GRAVITY_SMART) {
+                } elseif ($this->gravity === self::GRAVITY_SMART) {
                     $options['crop'] = Interesting::ATTENTION;
                 }
 
@@ -337,7 +343,7 @@ class Resizer
                         $options['size'] = Size::BOTH;
 
                     } else {
-                        $this->mode = Resizer::MODE_FILL;
+                        $this->mode = self::MODE_FILL;
 
                         if ($image->height < $this->height)
                             $options['height'] = $image->height;
