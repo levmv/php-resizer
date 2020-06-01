@@ -281,6 +281,9 @@ class Resizer
 
     protected function resize()
     {
+        if(empty($this->path)) {
+            throw new \ErrorException("Path cannot be empty");
+        }
 
         $file = $this->get_file($this->path);
         if (!$file) {
