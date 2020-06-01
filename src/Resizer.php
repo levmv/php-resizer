@@ -59,6 +59,7 @@ class Resizer
     public int $crop_width;
     public int $crop_height;
     public int $quality = 80;
+    public int $webp_q_correction = 0;
     public int $gravity = Resizer::GRAVITY_CENTER;
     public int $gravity_x;
     public int $gravity_y;
@@ -268,6 +269,9 @@ class Resizer
 
     public function process()
     {
+        if(empty($this->path)) {
+            $this->decode();
+        }
         try {
             if ($this->resize() === false) {
                 http_response_code(404);
@@ -279,12 +283,12 @@ class Resizer
         }
     }
 
+    /**
+     * @return bool
+     * @throws \Jcupitt\Vips\Exception
+     */
     protected function resize()
     {
-        if(empty($this->path)) {
-            throw new \ErrorException("Path cannot be empty");
-        }
-
         $file = $this->get_file($this->path);
         if (!$file) {
             return false;
@@ -345,12 +349,13 @@ class Resizer
             }
             $image = $this->crop
                 ? $image->thumbnail_image($this->width, $options)
-                : $image->thumbnail_buffer($file, $this->width, $options);
+                : Image::thumbnail_buffer($file, $this->width, $options);
 
-            if ($this->mode == Resizer::MODE_FILL) {
+            if ($this->mode === self::MODE_FILL) {
 
-                if ($image->hasAlpha())
+                if ($image->hasAlpha()) {
                     $image = $image->flatten();
+                }
 
                 $image = $image->embed(
                     ($final_width - $image->width) / 2,
@@ -367,7 +372,7 @@ class Resizer
             foreach ($this->filters as $filter) {
 
                 switch ($filter) {
-                    case Resizer::FILTER_SHARPEN:
+                    case self::FILTER_SHARPEN:
                         $image = $image->sharpen([
                             'sigma' => 0.5,
                             'x1' => 2,
@@ -391,34 +396,34 @@ class Resizer
                     $mark = $mark->resize($watermark['size'] / 100);
 
                 switch ($watermark['position']) {
-                    case Resizer::POSITION_NORTH:
+                    case self::POSITION_NORTH:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, 0, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_NORTH_EAST:
+                    case self::POSITION_NORTH_EAST:
                         $mark = $mark->embed($image->width - $mark->width, 0, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_EAST:
+                    case self::POSITION_EAST:
                         $mark = $mark->embed($image->width - $mark->width, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_SOUTH_EAST:
+                    case self::POSITION_SOUTH_EAST:
                         $mark = $mark->embed($image->width - $mark->width, $image->height - $mark->height, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_SOUTH:
+                    case self::POSITION_SOUTH:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height - $mark->height, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_SOUTH_WEST:
+                    case self::POSITION_SOUTH_WEST:
                         $mark = $mark->embed(0, $image->height - $mark->height, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_WEST:
+                    case self::POSITION_WEST:
                         $mark = $mark->embed(0, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_NORTH_WEST:
+                    case self::POSITION_NORTH_WEST:
                         $mark = $mark->embed(0, 0, $image->width, $image->height);
                         break;
-                    case Resizer::POSITION_CENTER:
+                    case self::POSITION_CENTER:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
-                }
+                }$image->
 
                 $image = $image->composite($mark, [BlendMode::OVER]);
             }
@@ -510,7 +515,7 @@ class Resizer
         \chmod($filename, 0666); // todo: make it configurable with 0644 by default
     }
 
-    private function cached_file($path)
+    private function cached_file($path): string
     {
         $file = \md5($path);
         $prefix = \substr($file, 0, 2);
