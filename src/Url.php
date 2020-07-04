@@ -2,15 +2,14 @@
 
 namespace levmorozov\phpresizer;
 
-class Url {
-
+class Url
+{
     public static function encodeParams(array $options = []) : string
     {
         $parts = [];
 
         foreach ($options as $name => $o) {
-
-            if(is_int($name) && is_string($o)) {
+            if (\is_int($name) && \is_string($o)) {
                 $parts[] = $o;
                 continue;
             }
@@ -21,16 +20,19 @@ class Url {
                 case 'resize':
                     $part = 'r';
                     if (isset($o['fit_mode'])) {
-                        if ($o['fit_mode'] === 'fill')
+                        if ($o['fit_mode'] === 'fill') {
                             $part = 'rf';
-                        elseif ($o['fit_mode'] === 'crop')
+                        } elseif ($o['fit_mode'] === 'crop') {
                             $part = 'rc';
+                        }
                     }
-                    if (isset($o['width']) AND $o['width'])
+                    if (isset($o['width']) and $o['width']) {
                         $part .= $o['width'];
+                    }
                     $part .= 'x';
-                    if (isset($o['height']) AND $o['height'])
+                    if (isset($o['height']) and $o['height']) {
                         $part .= $o['height'];
+                    }
                     break;
 
                 case 'quality':
@@ -47,10 +49,11 @@ class Url {
 
                 case 'gravity':
                     $part = 'g';
-                    if ($o['mode'] == 'focal point')
+                    if ($o['mode'] == 'focal point') {
                         $part .= 'f' . $o['x'] . 'x' . $o['y'];
-                    elseif ($o['mode'] === 'smart')
+                    } elseif ($o['mode'] === 'smart') {
                         $part .= 's';
+                    }
                     break;
 
                 case 'background':
@@ -91,8 +94,9 @@ class Url {
                             }
                         }
                         $part .= '-';
-                        if (isset($w['size']) AND $w['size'])
+                        if (isset($w['size']) and $w['size']) {
                             $part .= $w['size'];
+                        }
                         $parts[] = $part . '-' . \urlencode($w['path']);
                         $part = '';
                     }
@@ -106,18 +110,20 @@ class Url {
                     }
                     break;
                 case 'presets':
-                    foreach($o as $preset) {
+                    foreach ($o as $preset) {
                         $parts[] = "_$preset";
                         $part = '';
                     }
             }
 
-            if ($part)
+            if ($part) {
                 $parts[] = $part;
+            }
         }
 
-        if (empty($parts))
+        if (empty($parts)) {
             return 'n' ;
+        }
 
         return \implode(',', $parts);
     }

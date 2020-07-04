@@ -59,7 +59,7 @@ class Resizer
     public int $crop_width;
     public int $crop_height;
     public int $quality = 80;
-    public int $webp_q_correction = 0;
+    public int $webp_q_correction = -2;
     public int $gravity = Resizer::GRAVITY_CENTER;
     public int $gravity_x;
     public int $gravity_y;
@@ -99,11 +99,10 @@ class Resizer
         }
 
         try {
-            $this->decode_params($uri);
+            $this->decodeParams($uri);
 
             if (!empty($this->request_presets)) {
-
-                foreach($this->request_presets as $preset_name) {
+                foreach ($this->request_presets as $preset_name) {
                     if (!isset($this->presets[$preset_name])) {
                         throw new \LogicException("Unknown preset: $preset_name");
                     }
@@ -111,7 +110,7 @@ class Resizer
                 }
             }
         } catch (\Throwable $e) {
-            http_response_code(500);
+            \http_response_code(500);
             $this->error($e);
             exit;
         }
@@ -125,7 +124,7 @@ class Resizer
      * @param string $uri
      * @return array
      */
-    public function split_uri(string $uri) : array
+    public function splitUri(string $uri) : array
     {
         $parts =  \explode('/', $uri, 2);
         $parts[1] = \ltrim(\urldecode($parts[1]), '/');
@@ -133,16 +132,17 @@ class Resizer
         return $parts;
     }
 
-    protected function decode_params(string $uri) : void
+    protected function decodeParams(string $uri) : void
     {
-        $parts = $this->split_uri($uri);
+        $parts = $this->splitUri($uri);
 
         $this->path = $parts[1];
 
-        if($this->presets_only) {
+        if ($this->presets_only) {
             $presets = \explode(',', $parts[0]);
-            if(empty($presets))
+            if (empty($presets)) {
                 throw new \Exception('No one preset found');
+            }
             foreach ($presets as $option) {
                 $this->request_presets[] = $option;
             }
@@ -151,7 +151,6 @@ class Resizer
         }
 
         foreach (\explode(',', $parts[0]) as $option) {
-
             $name = \substr($option, 0, 1);
             $value = \substr($option, 1);
 
@@ -168,60 +167,62 @@ class Resizer
                         $this->mode = self::MODE_CROP;
                         $value = \substr($value, 1);
                     }
-                    $sizes = explode('x', $value);
+                    $sizes = \explode('x', $value);
                     if (\count($sizes) === 2) {
                         $this->resize = true;
-                        $this->width = (int)$sizes[0];
-                        $this->height = (int)$sizes[1];
-                    } elseif (\count($sizes) === 1 AND $sizes[0]) {
+                        $this->width = (int) $sizes[0];
+                        $this->height = (int) $sizes[1];
+                    } elseif (\count($sizes) === 1 and $sizes[0]) {
                         $this->resize = true;
-                        $this->width = (int)$sizes[0];
+                        $this->width = (int) $sizes[0];
                     } else {
-                        throw new \RuntimeException("Wrong resize values count");
+                        throw new \RuntimeException('Wrong resize values count');
                     }
                     break;
                 case 'c':
                     $numbers = \explode('x', $value);
                     if (\count($numbers) === 4) {
                         $this->crop = true;
-                        $this->crop_x = (int)$numbers[0];
-                        $this->crop_y = (int)$numbers[1];
-                        $this->crop_width = (int)$numbers[2];
-                        $this->crop_height = (int)$numbers[3];
+                        $this->crop_x = (int) $numbers[0];
+                        $this->crop_y = (int) $numbers[1];
+                        $this->crop_width = (int) $numbers[2];
+                        $this->crop_height = (int) $numbers[3];
                     } else {
-                        throw new \RuntimeException("Wrong crop values count");
+                        throw new \RuntimeException('Wrong crop values count');
                     }
                     break;
                 case 'q':
-                    $this->quality = (int)$value;
-                    if($this->quality < 5 || $this->quality > 99)
+                    $this->quality = (int) $value;
+                    if ($this->quality < 5 || $this->quality > 99) {
                         throw new \RuntimeException('Wrong quality value');
+                    }
                     break;
                 case 'g':
                     if ($value[0] === 'f') {
                         $this->gravity = Resizer::GRAVITY_FOCAL;
-                        $point = explode('x', substr($value, 1));
-                        if (count($point) === 2) {
-                            $this->gravity_x = (int)$point[0];
-                            $this->gravity_y = (int)$point[1];
+                        $point = \explode('x', \substr($value, 1));
+                        if (\count($point) === 2) {
+                            $this->gravity_x = (int) $point[0];
+                            $this->gravity_y = (int) $point[1];
                         }
                     } elseif ($value[0] === 's') {
                         $this->gravity = Resizer::GRAVITY_SMART;
                     }
                     break;
                 case 'b':
-                    if(\strlen($value) !== 6)
+                    if (\strlen($value) !== 6) {
                         throw new \RuntimeException('Wrong background format');
+                    }
 
-                    $this->background = \sscanf($value, "%02x%02x%02x");
+                    $this->background = \sscanf($value, '%02x%02x%02x');
                     break;
                 case 'w':
                     $opts = \explode('-', $value);
-                    if (\count($opts) === 3 AND $opts[2]) {
+                    if (\count($opts) === 3 and $opts[2]) {
                         $this->watermarks[] = [
                             'path' => \urldecode($opts[2]),
                             'position' => $opts[0] ? $opts[0] : self::POSITION_SOUTH_EAST,
-                            'size' => $opts[1] ? (int)$opts[1] : 100
+                            'size' => $opts[1] ? (int) $opts[1] : 100,
                         ];
                     }
                     break;
@@ -260,35 +261,37 @@ class Resizer
      */
     protected function error($e): void
     {
-        if (!$this->log)
+        if (!$this->log) {
             return;
+        }
 
-        $refferer = $_SERVER['HTTP_REFERER'] ?? "";
+        $refferer = $_SERVER['HTTP_REFERER'] ?? '';
 
-        if ($e instanceof \Throwable)
-            $e = (string)$e . "\n";
+        if ($e instanceof \Throwable) {
+            $e = (string) $e . "\n";
+        }
 
-        if (($f = fopen($this->log, 'a')) === false) {
+        if (($f = \fopen($this->log, 'a')) === false) {
             throw new \ErrorException("Unable to append to log file: {$this->log}");
         }
-        flock($f, LOCK_EX);
-        fwrite($f, '[' . date('Y-m-d H:i:s') . '] [' . $refferer . '] ' . $_SERVER['REQUEST_URI'] . ' ' . $e . "\n");
-        flock($f, LOCK_UN);
-        fclose($f);
+        \flock($f, \LOCK_EX);
+        \fwrite($f, '[' . \date('Y-m-d H:i:s') . '] [' . $refferer . '] ' . $_SERVER['REQUEST_URI'] . ' ' . $e . "\n");
+        \flock($f, \LOCK_UN);
+        \fclose($f);
     }
 
     public function process(): void
     {
-        if(empty($this->path)) {
+        if (empty($this->path)) {
             $this->decode();
         }
         try {
             if ($this->resize() === false) {
-                http_response_code(404);
+                \http_response_code(404);
             }
         } catch (\Throwable $e) {
             $this->error($e);
-            http_response_code(500);
+            \http_response_code(500);
             exit;
         }
     }
@@ -299,7 +302,7 @@ class Resizer
      */
     protected function resize() : bool
     {
-        $file = $this->get_file($this->path);
+        $file = $this->getFile($this->path);
         if (!$file) {
             return false;
         }
@@ -311,11 +314,12 @@ class Resizer
         ]);
 
         if ($this->crop) {
-
-            if ($this->crop_x + $this->crop_width > $image->width)
+            if ($this->crop_x + $this->crop_width > $image->width) {
                 $this->crop_width = $image->width - $this->crop_x;
-            if ($this->crop_y + $this->crop_height > $image->height)
+            }
+            if ($this->crop_y + $this->crop_height > $image->height) {
                 $this->crop_height = $image->height - $this->crop_y;
+            }
 
             $image = $image->crop($this->crop_x, $this->crop_y, $this->crop_width, $this->crop_height);
         }
@@ -327,7 +331,6 @@ class Resizer
         }
 
         if ($this->resize) {
-
             $final_width = $this->width;
             $final_height = $this->height;
 
@@ -341,19 +344,19 @@ class Resizer
                     $options['crop'] = Interesting::ATTENTION;
                 }
 
-                if ($image->width < $this->width OR $image->height < $this->height) {
-
+                if ($image->width < $this->width or $image->height < $this->height) {
                     if ($this->pixel_ratio || $this->upscale) {
                         $options['size'] = Size::BOTH;
-
                     } else {
                         $this->mode = self::MODE_FILL;
 
-                        if ($image->height < $this->height)
+                        if ($image->height < $this->height) {
                             $options['height'] = $image->height;
+                        }
 
-                        if ($image->width < $this->width)
+                        if ($image->width < $this->width) {
                             $this->width = $image->width;
+                        }
                     }
                 }
             }
@@ -362,7 +365,6 @@ class Resizer
                 : Image::thumbnail_buffer($file, $this->width, $options);
 
             if ($this->mode === self::MODE_FILL) {
-
                 if ($image->hasAlpha()) {
                     $image = $image->flatten();
                 }
@@ -378,9 +380,7 @@ class Resizer
         }
 
         if (\count($this->filters)) {
-
             foreach ($this->filters as $filter) {
-
                 switch ($filter) {
                     case self::FILTER_SHARPEN:
                         $image = $image->sharpen([
@@ -389,7 +389,7 @@ class Resizer
                             'y2' => 10,
                             'y3' => 20,
                             'm1' => 0,
-                            'm2' => 2
+                            'm2' => 2,
                         ]);
                         break;
                 }
@@ -397,13 +397,12 @@ class Resizer
         }
 
         if (\count($this->watermarks)) {
-
             foreach ($this->watermarks as $watermark) {
+                $mark = Image::pngload_buffer($this->getFile($watermark['path']));
 
-                $mark = Image::pngload_buffer($this->get_file($watermark['path']));
-
-                if ($watermark['size'] < 100)
+                if ($watermark['size'] < 100) {
                     $mark = $mark->resize($watermark['size'] / 100);
+                }
 
                 switch ($watermark['position']) {
                     case self::POSITION_NORTH:
@@ -433,7 +432,8 @@ class Resizer
                     case self::POSITION_CENTER:
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
-                }$image->
+                }
+                $image->
 
                 $image = $image->composite($mark, [BlendMode::OVER]);
             }
@@ -441,14 +441,12 @@ class Resizer
 
         $params = [];
 
-        if (isset($_SERVER['HTTP_ACCEPT']) AND strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false AND $this->auto_webp) {
-
+        if (isset($_SERVER['HTTP_ACCEPT']) and \strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false and $this->auto_webp) {
             $params['Q'] = $this->quality + $this->webp_q_correction;
 
             \header('Content-type: image/webp');
             echo $image->webpsave_buffer($params);
         } else {
-
             $params['Q'] = $this->quality;
 
             \header('Content-type: image/jpeg');
@@ -457,21 +455,21 @@ class Resizer
         return true;
     }
 
-    protected function get_file($path)
+    protected function getFile($path)
     {
         return $this->remote_storage
-            ? $this->get_s3($path)
-            : $this->get_local($path);
+            ? $this->getS3($path)
+            : $this->getLocal($path);
     }
 
-    protected function get_local($path)
+    protected function getLocal($path)
     {
         return \file_get_contents($this->base_path . $path);
     }
 
-    protected function get_s3($path)
+    protected function getS3($path)
     {
-        if ($this->cache_path && $object = $this->get_cached($path)) {
+        if ($this->cache_path && $object = $this->getCached($path)) {
             return $object;
         }
 
@@ -482,12 +480,13 @@ class Resizer
 
         $result = $this->s3->getObject([
             'Bucket' => $this->bucket,
-            'Key' => $path
+            'Key' => $path,
         ]);
 
         if ($result['error']) {
-            if ($result['error']['code'] === 'NoSuchKey')
+            if ($result['error']['code'] === 'NoSuchKey') {
                 return false;
+            }
 
             throw new \Exception($result['error']['code'] . ': ' . $result['error']['message']);
         }
@@ -501,9 +500,9 @@ class Resizer
 
     // Temporary:
 
-    private function get_cached($path)
+    private function getCached($path)
     {
-        $filename = $this->cached_file($path);
+        $filename = $this->cachedFile($path);
         if (\file_exists($filename)) {
             \exec("touch {$filename}");
             return \file_get_contents($filename);
@@ -514,7 +513,7 @@ class Resizer
 
     private function cache($path, $content)
     {
-        $filename = $this->cached_file($path);
+        $filename = $this->cachedFile($path);
 
         $dir = \dirname($filename);
         if (!\is_dir($dir)) {
@@ -525,7 +524,7 @@ class Resizer
         \chmod($filename, 0666); // todo: make it configurable with 0644 by default
     }
 
-    private function cached_file($path): string
+    private function cachedFile($path): string
     {
         $file = \md5($path);
         $prefix = \substr($file, 0, 2);
