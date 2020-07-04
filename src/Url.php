@@ -1,11 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace levmorozov\phpresizer;
 
 class Url {
 
-
-    public static function encode_params(array $options = []) : string
+    public static function encodeParams(array $options = []) : string
     {
         $parts = [];
 

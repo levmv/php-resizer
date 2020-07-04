@@ -10,13 +10,13 @@ use levmorozov\s3\S3;
 
 class Resizer
 {
-    const DPR_1_5 = 1;
-    const DPR_TWO = 2;
-    const DPR_THREE = 3;
+    public const DPR_1_5 = 1;
+    public const DPR_TWO = 2;
+    public const DPR_THREE = 3;
 
-    const MODE_CONTAIN = 1;
-    const MODE_FILL = 2;
-    const MODE_CROP = 3;
+    public const MODE_CONTAIN = 1;
+    public const MODE_FILL = 2;
+    public const MODE_CROP = 3;
 
     public const GRAVITY_CENTER = 1;
     public const GRAVITY_SMART = 2;
@@ -32,7 +32,7 @@ class Resizer
     public const POSITION_NORTH_WEST = 'nw';
     public const POSITION_CENTER = 'c';
 
-    const FILTER_SHARPEN = 's';
+    public const FILTER_SHARPEN = 's';
 
     protected bool $remote_storage = false;
 
@@ -83,14 +83,16 @@ class Resizer
         $this->config($config);
     }
 
-    public function config(array $options): void
+    public function config(array $options): self
     {
         foreach ($options as $key => $value) {
             $this->$key = $value;
         }
+
+        return $this;
     }
 
-    public function decode(string $uri = null): void
+    public function decode(string $uri = null): self
     {
         if ($uri === null) {
             $uri = \ltrim($_SERVER['REQUEST_URI'], '/');
@@ -113,6 +115,8 @@ class Resizer
             $this->error($e);
             exit;
         }
+
+        return $this;
     }
 
     /**
