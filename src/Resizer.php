@@ -326,8 +326,8 @@ class Resizer
 
         if ($this->pixel_ratio) {
             $ratio = $this->pixel_ratio === self::DPR_1_5 ? 1.5 : $this->pixel_ratio;
-            $this->width *= $ratio;
-            $this->height *= $ratio;
+            $this->width = (int) ($this->width * $ratio);
+            $this->height = (int) ($this->height * $ratio);
         }
 
         if ($this->resize) {
