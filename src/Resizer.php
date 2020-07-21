@@ -470,6 +470,10 @@ class Resizer
     protected function getS3($path)
     {
         if ($this->cache_path && $object = $this->getCached($path)) {
+            if($object === '404') {
+                return false;
+            }
+
             return $object;
         }
 
@@ -485,6 +489,9 @@ class Resizer
 
         if ($result['error']) {
             if ($result['error']['code'] === 'NoSuchKey') {
+                if ($this->cache_path) {
+                    $this->cache($path, '404');
+                }
                 return false;
             }
 
