@@ -80,6 +80,8 @@ class Resizer
 
     public function __construct($config)
     {
+        \set_error_handler([$this, 'errorHandler']);
+        \set_exception_handler([$this, 'handleException']);
         $this->config($config);
     }
 
@@ -504,6 +506,28 @@ class Resizer
 
         return $result['body'];
     }
+
+    public function errorHandler($code, $error, $file, $line)
+    {
+        throw new ErrorException($error, $code, 0, $file, $line);
+        return true;
+    }
+
+    public function handleException($e)
+    {
+        \restore_error_handler();
+        \restore_exception_handler();
+
+        \http_response_code(500);
+
+        try {
+            $this->error($e);
+        } catch (\Throwable $e) {
+            throw $e;
+        }
+        exit(1);
+    }
+
 
     // Temporary:
 
