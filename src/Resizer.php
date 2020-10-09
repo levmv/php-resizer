@@ -509,8 +509,7 @@ class Resizer
 
     public function errorHandler($code, $error, $file, $line)
     {
-        throw new ErrorException($error, $code, 0, $file, $line);
-        return true;
+        throw new \ErrorException($error, $code, 0, $file, $line);
     }
 
     public function handleException($e)
