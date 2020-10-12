@@ -546,12 +546,17 @@ class Resizer
         $filename = $this->cachedFile($path);
 
         $dir = \dirname($filename);
+
+        $old = umask(0);
+
         if (!\is_dir($dir)) {
             \mkdir($dir, 0777, true);
         }
 
         \file_put_contents($filename, $content);
-        \chmod($filename, 0666); // todo: make it configurable with 0644 by default
+        \chmod($filename, 0666);
+
+        umask($old);
     }
 
     private function cachedFile($path): string
