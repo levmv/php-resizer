@@ -435,7 +435,6 @@ class Resizer
                         $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
                         break;
                 }
-                $image->
 
                 $image = $image->composite($mark, [BlendMode::OVER]);
             }
