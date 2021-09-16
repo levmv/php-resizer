@@ -65,36 +65,24 @@ class Url
                         $part = 'w';
                         if (isset($w['position'])) {
                             switch ($w['position']) {
-                                case 'north':
-                                    $part = Resizer::POSITION_NORTH;
-                                    break;
-                                case 'north east':
-                                    $part = Resizer::POSITION_NORTH_EAST;
-                                    break;
-                                case 'east':
-                                    $part = Resizer::POSITION_EAST;
-                                    break;
                                 case 'south east':
-                                    break;
-                                case 'south':
-                                    $part = Resizer::POSITION_SOUTH;
+                                    $part .= Resizer::POSITION_SOUTH_EAST;
                                     break;
                                 case 'south west':
-                                    $part = Resizer::POSITION_SOUTH_WEST;
-                                    break;
-                                case 'west':
-                                    $part = Resizer::POSITION_WEST;
+                                    $part .= Resizer::POSITION_SOUTH_WEST;
                                     break;
                                 case 'north_west':
-                                    $part = Resizer::POSITION_NORTH_WEST;
+                                    $part .= Resizer::POSITION_NORTH_WEST;
                                     break;
                                 case 'center':
-                                    $part = Resizer::POSITION_CENTER;
+                                    $part .= Resizer::POSITION_CENTER;
                                     break;
+                                default:
+                                    $part .= $w['position'];
                             }
                         }
                         $part .= '-';
-                        if (isset($w['size']) and $w['size']) {
+                        if (isset($w['size']) && $w['size']) {
                             $part .= $w['size'];
                         }
                         $parts[] = $part . '-' . \urlencode($w['path']);

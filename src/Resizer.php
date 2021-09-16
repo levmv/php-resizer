@@ -22,13 +22,13 @@ class Resizer
     public const GRAVITY_SMART = 2;
     public const GRAVITY_FOCAL = 3;
 
-    public const POSITION_NORTH = 'n';
-    public const POSITION_NORTH_EAST = 'ne';
-    public const POSITION_EAST = 'e';
+    //public const POSITION_NORTH = 'n';
+    //public const POSITION_NORTH_EAST = 'ne';
+    //public const POSITION_EAST = 'e';
     public const POSITION_SOUTH_EAST = 'se';
-    public const POSITION_SOUTH = 's';
+    //public const POSITION_SOUTH = 's';
     public const POSITION_SOUTH_WEST = 'sw';
-    public const POSITION_WEST = 'w';
+    //public const POSITION_WEST = 'w';
     public const POSITION_NORTH_WEST = 'nw';
     public const POSITION_CENTER = 'c';
 
@@ -221,9 +221,14 @@ class Resizer
                 case 'w':
                     $opts = \explode('-', $value);
                     if (\count($opts) === 3 and $opts[2]) {
+                        if(\strlen($opts[0]) > 2) {
+                            $position = explode('x', $opts[0]);
+                        } else {
+                            $position = $opts[0] ?: self::POSITION_SOUTH_EAST;
+                        }
                         $this->watermarks[] = [
                             'path' => \urldecode($opts[2]),
-                            'position' => $opts[0] ? $opts[0] : self::POSITION_SOUTH_EAST,
+                            'position' => $position,
                             'size' => $opts[1] ? (int) $opts[1] : 100,
                         ];
                     }
@@ -405,35 +410,28 @@ class Resizer
                 if ($watermark['size'] < 100) {
                     $mark = $mark->resize($watermark['size'] / 100);
                 }
+                if(is_array($watermark['position'])) {
+                    $x = (int) $watermark['position'][0];
+                    $y = (int) $watermark['position'][1];
 
-                switch ($watermark['position']) {
-                    case self::POSITION_NORTH:
-                        $mark = $mark->embed($image->width / 2 - $mark->width / 2, 0, $image->width, $image->height);
-                        break;
-                    case self::POSITION_NORTH_EAST:
-                        $mark = $mark->embed($image->width - $mark->width, 0, $image->width, $image->height);
-                        break;
-                    case self::POSITION_EAST:
-                        $mark = $mark->embed($image->width - $mark->width, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
-                        break;
-                    case self::POSITION_SOUTH_EAST:
-                        $mark = $mark->embed($image->width - $mark->width, $image->height - $mark->height, $image->width, $image->height);
-                        break;
-                    case self::POSITION_SOUTH:
-                        $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height - $mark->height, $image->width, $image->height);
-                        break;
-                    case self::POSITION_SOUTH_WEST:
-                        $mark = $mark->embed(0, $image->height - $mark->height, $image->width, $image->height);
-                        break;
-                    case self::POSITION_WEST:
-                        $mark = $mark->embed(0, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
-                        break;
-                    case self::POSITION_NORTH_WEST:
-                        $mark = $mark->embed(0, 0, $image->width, $image->height);
-                        break;
-                    case self::POSITION_CENTER:
-                        $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
-                        break;
+                    $x = $image->width - $mark->width - $x;
+                    $y = $image->height - $mark->height - $y;
+                    $mark = $mark->embed($x, $y, $image->width, $image->height);
+                } else {
+                    switch ($watermark['position']) {
+                        case self::POSITION_SOUTH_EAST:
+                            $mark = $mark->embed($image->width - $mark->width, $image->height - $mark->height, $image->width, $image->height);
+                            break;
+                        case self::POSITION_SOUTH_WEST:
+                            $mark = $mark->embed(0, $image->height - $mark->height, $image->width, $image->height);
+                            break;
+                        case self::POSITION_NORTH_WEST:
+                            $mark = $mark->embed(0, 0, $image->width, $image->height);
+                            break;
+                        case self::POSITION_CENTER:
+                            $mark = $mark->embed($image->width / 2 - $mark->width / 2, $image->height / 2 - $mark->height / 2, $image->width, $image->height);
+                            break;
+                    }
                 }
 
                 $image = $image->composite($mark, [BlendMode::OVER]);
