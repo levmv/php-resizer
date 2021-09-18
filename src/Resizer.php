@@ -219,19 +219,39 @@ class Resizer
                     $this->background = \sscanf($value, '%02x%02x%02x');
                     break;
                 case 'w':
-                    $opts = \explode('-', $value);
-                    if (\count($opts) === 3 and $opts[2]) {
-                        if(\strlen($opts[0]) > 2) {
-                            $position = explode('x', $opts[0]);
-                        } else {
-                            $position = $opts[0] ?: self::POSITION_SOUTH_EAST;
-                        }
+                    // legacy support
+                    if($value === '--h') {
                         $this->watermarks[] = [
-                            'path' => \urldecode($opts[2]),
-                            'position' => $position,
-                            'size' => $opts[1] ? (int) $opts[1] : 100,
+                            'path' => 'h',
+                            'position' => self::POSITION_SOUTH_EAST,
+                            'size' => 100
                         ];
+                        break;
                     }
+
+                    $position = self::POSITION_SOUTH_EAST;
+                    $size = 100;
+
+                    $opts = \explode('-', $value);
+
+                    switch (\count($opts)) {
+                        case 3:
+                            $size = (int) $opts[2];
+                        case 2:
+                            if(\strlen($opts[1]) > 2) {
+                                $position = explode('x', $opts[1]);
+                            } else {
+                                $position = $opts[1];
+                            }
+                        case 1:
+                            $path = \urldecode($opts[0]);
+                    }
+
+                    $this->watermarks[] = [
+                        'path' => $path,
+                        'position' => $position,
+                        'size' => $size,
+                    ];
                     break;
                 case 'f':
                     $this->filters[] = $value;
@@ -261,6 +281,7 @@ class Resizer
             }
         }
     }
+
 
     /**
      * @param $e

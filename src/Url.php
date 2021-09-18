@@ -62,31 +62,15 @@ class Url
 
                 case 'watermarks':
                     foreach ($o as $w) {
-                        $part = 'w';
+                        $wpart = 'w'.\urlencode($w['path']);
+
                         if (isset($w['position'])) {
-                            switch ($w['position']) {
-                                case 'south east':
-                                    $part .= Resizer::POSITION_SOUTH_EAST;
-                                    break;
-                                case 'south west':
-                                    $part .= Resizer::POSITION_SOUTH_WEST;
-                                    break;
-                                case 'north_west':
-                                    $part .= Resizer::POSITION_NORTH_WEST;
-                                    break;
-                                case 'center':
-                                    $part .= Resizer::POSITION_CENTER;
-                                    break;
-                                default:
-                                    $part .= $w['position'];
-                            }
+                            $wpart .= '-'.$w['position'];
                         }
-                        $part .= '-';
                         if (isset($w['size']) && $w['size']) {
-                            $part .= $w['size'];
+                            $wpart .= '-'.$w['size'];
                         }
-                        $parts[] = $part . '-' . \urlencode($w['path']);
-                        $part = '';
+                        $parts[] = $wpart;
                     }
                     break;
 
@@ -94,13 +78,11 @@ class Url
                     foreach ($o as $f) {
                         // TODO: Switch case for filters
                         $parts[] = 'f' . \substr($f, 0, 1);
-                        $part = '';
                     }
                     break;
                 case 'presets':
                     foreach ($o as $preset) {
                         $parts[] = "_$preset";
-                        $part = '';
                     }
             }
 
