@@ -22,7 +22,7 @@ class Resizer
     public const GRAVITY_SMART = 2;
     public const GRAVITY_FOCAL = 3;
 
-    //public const POSITION_NORTH = 'n';
+    public const POSITION_NORTH = 'n';
     //public const POSITION_NORTH_EAST = 'ne';
     //public const POSITION_EAST = 'e';
     public const POSITION_SOUTH_EAST = 'se';
@@ -440,6 +440,9 @@ class Resizer
                     $mark = $mark->embed($x, $y, $image->width, $image->height);
                 } else {
                     switch ($watermark['position']) {
+                        case self::POSITION_NORTH:
+                            $mark = $mark->embed($image->width / 2 - $mark->width / 2, 0, $image->width, $image->height);
+                            break;
                         case self::POSITION_SOUTH_EAST:
                             $mark = $mark->embed($image->width - $mark->width, $image->height - $mark->height, $image->width, $image->height);
                             break;
