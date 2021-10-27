@@ -352,10 +352,11 @@ class Resizer
             $image = $image->crop($this->crop_x, $this->crop_y, $this->crop_width, $this->crop_height);
         }
 
+        $pixelRatio = 1;
         if ($this->pixel_ratio) {
-            $ratio = $this->pixel_ratio === self::DPR_1_5 ? 1.5 : $this->pixel_ratio;
-            $this->width = (int) ($this->width * $ratio);
-            $this->height = (int) ($this->height * $ratio);
+            $pixelRatio = $this->pixel_ratio === self::DPR_1_5 ? 1.5 : $this->pixel_ratio;
+            $this->width = (int) ($this->width * $pixelRatio);
+            $this->height = (int) ($this->height * $pixelRatio);
         }
 
         if ($this->resize) {
@@ -431,9 +432,19 @@ class Resizer
                 if ($watermark['size'] < 100) {
                     $mark = $mark->resize($watermark['size'] / 100);
                 }
+
+                if($this->pixel_ratio) {
+                    $mark = $mark->thumbnail_image((int)($mark->width*$pixelRatio), ['size' => Size::BOTH]);
+                }
+
                 if(is_array($watermark['position'])) {
                     $x = (int) $watermark['position'][0];
                     $y = (int) $watermark['position'][1];
+
+                    if($this->pixel_ratio) {
+                        $x = (int) ($x*$pixelRatio);
+                        $y = (int) ($y*$pixelRatio);
+                    }
 
                     $x = $image->width - $mark->width - $x;
                     $y = $image->height - $mark->height - $y;
