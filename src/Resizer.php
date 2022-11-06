@@ -3,6 +3,7 @@
 namespace levmorozov\phpresizer;
 
 use Jcupitt\Vips\BlendMode;
+use Jcupitt\Vips\Config;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
 use Jcupitt\Vips\Size;
@@ -335,7 +336,7 @@ class Resizer
             return false;
         }
 
-        \vips_cache_set_max(0);
+        Config::cacheSetMax(0);
 
         $image = Image::newFromBuffer($file, '', [
             'access' => 'sequential',

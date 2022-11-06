@@ -7,8 +7,8 @@
   "license": "MIT",
   "require": {
     "php": ">=7.4",
-    "jcupitt/vips" : "~1.0.5",
-    "levmv/amazon-s3-php": "~0.0.5"
+    "jcupitt/vips" : "~2.1.0",
+    "levmv/amazon-s3-php": "^0.0.5"
   },
   "autoload": {
     "psr-4": {
