@@ -4,10 +4,11 @@
   "description": "Microservice to resize images",
   "keywords": [],
   "homepage": "https://github.com/levmv/php-resizer",
+  "minimum-stability": "dev",
   "license": "MIT",
   "require": {
     "php": ">=7.4",
-    "jcupitt/vips" : "~2.1.0",
+    "jcupitt/vips" : "dev-master",
     "levmv/amazon-s3-php": "^0.0.5"
   },
   "autoload": {
