@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace levmorozov\phpresizer;
+namespace levmv\phpresizer;
 
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Config;
 use Jcupitt\Vips\Image;
 use Jcupitt\Vips\Interesting;
 use Jcupitt\Vips\Size;
-use levmorozov\s3\S3;
+use levmv\s3\S3;
 
 class Resizer
 {
