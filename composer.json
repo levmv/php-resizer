@@ -7,7 +7,7 @@
   "minimum-stability": "dev",
   "license": "MIT",
   "require": {
-    "php": ">=7.4",
+    "php": ">=8.1",
     "jcupitt/vips" : "*",
     "levmv/amazon-s3-php": "~0.0.6",
     "levmv/resizer-url": "~0.1.0"
