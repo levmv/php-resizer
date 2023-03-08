@@ -1,6 +1,5 @@
 <?php declare(strict_types=1);
 
-namespace levmv\phpresizer;
 
 use Jcupitt\Vips\BlendMode;
 use Jcupitt\Vips\Config;
